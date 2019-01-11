@@ -15,31 +15,19 @@ class TotalUsedQtyMetric(BaseMetric):
         return data
 
 
-class OrderLeadtimeDistribution(BaseMetric):
+class OrderLeadTimeDiscreteDistribution(BaseMetric):
     def __init__(self):
-        super(OrderLeadtimeDistribution, self).__init__()
+        super(OrderLeadTimeDiscreteDistribution, self).__init__()
         self.x_units = "days"
-        self.metric_name = "Order Leadtime Distribution"
+        self.metric_name = "Order Lead Time Distribution"
         self.y_label = "Count of PO Ids"
-        self.x_label = "Order Leadtime ({0})".format(self.x_units)
+        self.x_label = "Order Lead Time ({0})".format(self.x_units)
 
     def compute_metric(self, df, groupby_dim, args=None):
-        seconds_in_hr = 60*60
-        data = df[["order_leadtime"]]\
-            .rename(columns={'order_leadtime': 'y'})
-        if args:
-            if args["x_unit"] == "days":
-                data["y"] = data["y"].dt.days
-            elif args["x_unit"] == "weeks":
-                data["y"] = data["y"].dt.days / 7
-            elif args["x_unit"] == "hours":
-                data["y"] = data["y"].dt.days + data["y"].dt.seconds / seconds_in_hr
-            else:
-                data["y"] = data["y"].dt.days
-            print("DATA points:", len(data["y"]))
-        return data
+        return df["order_leadtime"].dt.days
 
     def set_x_units(self, units):
-        assert(units in ["days", "hours", "weeks", "none"])
+        assert(units in ["days", "1hours", "weeks"])
         self.x_units = units
-        self.x_label = "Order Leadtime ({0})".format(self.x_units)
+        self.x_label = "Order Lead Time ({0})".format(self.x_units)
+        return self

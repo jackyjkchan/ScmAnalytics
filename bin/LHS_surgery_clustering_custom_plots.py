@@ -38,7 +38,8 @@ def item_usage_distribution_per_cluster(surg_item_usage_df, item_ids):
     clusters = list(set(surg_item_usage_df["kmean_label"]))
     clusters.sort()
     for cluster in clusters:
-        f, axes = plt.subplots(math.ceil(len(item_ids) / 5), 5, figsize=(48, 18))
+        #f, axes = plt.subplots(math.ceil(len(item_ids) / 5), 5, figsize=(48, 18))
+        f, axes = plt.subplots(math.ceil(len(item_ids) / 5), 5, figsize=(32, 12))
         i = 0
         for item_id in item_ids:
             ax = axes[int(i / 5)][i % 5]

@@ -20,14 +20,14 @@ def main():
         analytics.metrics_barchart(analytics.usage.df,
                                    analytics.usage.total_used_qty_metric,
                                    "kmean_label",
-                                   filter_dict=filter_dict,
-                                   save_dir=path.join(config.LHS().results_path, "test")
+                                   filters=filter_dict,
+                                       save_dir=path.join(config.LHS().results_path, "test")
                                    )
 
         analytics.metrics_barchart(analytics.usage.df,
                                    analytics.usage.total_used_qty_metric,
                                    "case_service",
-                                   filter_dict=filter_dict,
+                                   filters=filter_dict,
                                    save_dir=path.join(config.LHS().results_path, "test")
                                    )
     return 0

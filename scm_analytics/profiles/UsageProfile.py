@@ -28,8 +28,8 @@ class UsageProfile(BaseProfile):
 
         # import all metrics
         self.total_used_qty_metric = TotalUsedQtyMetric()
-        self.booking_leadtime_distribution = BookingLeadtimeDistribution()
-        self.surgery_inter_arrival_distribution = InterArrivalDistribution()
+        #self.booking_leadtime_distribution = BookingLeadTimeDistribution()
+        self.item_usage_distribution = ItemUsageDistribution()
 
         self.assert_structure()
         self.preprocess_columns()

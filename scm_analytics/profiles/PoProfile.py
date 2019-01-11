@@ -25,9 +25,6 @@ class PoProfile(BaseProfile):
             "order_leadtime"
         ]
 
-        # import all metrics
-        self.ordering_leadtime_distribution = OrderLeadtimeDistribution()
-
         self.assert_structure()
         self.preprocess_columns()
 

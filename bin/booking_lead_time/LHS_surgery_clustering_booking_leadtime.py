@@ -1,13 +1,13 @@
 from scm_analytics import ScmAnalytics, config
-from scm_analytics.metrics.UsageMetrics import InterArrivalTimeDistribution
+from scm_analytics.metrics.UsageMetrics import BookingLeadTimeDistribution
 from os import path
-
 
 if __name__ == "__main__":
     num_clusters = 12
     analytics = ScmAnalytics.ScmAnalytics(config.LHS())
     item_df = analytics.classify_usage_items()
     item_df = item_df[item_df["used_qty"] > 200]
+    print(item_df)
     item_ids = list(item_df.head(15)["item_id"])
 
     surg_item_usage_df = analytics.kcluster_surgeries(item_ids, k=num_clusters)
@@ -17,13 +17,14 @@ if __name__ == "__main__":
                           "op": "eq",
                           "val": kmean_label}
 
-        for x_units in ["days", "4hours", "weeks", "1hours", "halfhours"]:
-            title = "Inter Arrival Distribution for [{0}] Surgeries ({1} Bins)"\
+        for x_units in ["days", "1hours", "weeks", "halfhours"]:
+            title = "Booking Lead Time Distribution for [{0}] Surgeries ({1} Bins)" \
                 .format(analytics.filter_desc(surgery_filter), x_units)
             x_label = "{0} Bins".format(x_units)
             y_label = "Surgery Count"
-            data = InterArrivalTimeDistribution()\
-                .set_x_units(x_units)\
+
+            data = BookingLeadTimeDistribution() \
+                .set_x_units(x_units) \
                 .get_data(analytics.usage.df, filters=surgery_filter)
             analytics.time_distribution_plt(data,
                                             x_units,

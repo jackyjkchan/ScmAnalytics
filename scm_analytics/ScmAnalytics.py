@@ -17,17 +17,22 @@ from scm_analytics.profiles.PoProfile import PoProfile
 class ScmAnalytics(AnalyticsCore):
 
     def __init__(self, configs):
+
+        self.config = configs
+
+        # deprecated, to be removed
         data_model_path = configs.data_model_path
         self.po_df = pd.read_pickle(path.join(data_model_path, "po_df"))
         self.usage_df = pd.read_pickle(path.join(data_model_path, "usage_df"))
         self.case_cart_df = pd.read_pickle(path.join(data_model_path, "case_cart_df"))
         self.item_catalog_df = pd.read_pickle(path.join(data_model_path, "item_catalog_df"))
         self.surgery_df = pd.read_pickle(path.join(data_model_path, "surgery_df"))
-        self.config = configs
 
+        # new way of storing dfs
         self.usage = UsageProfile(self.usage_df)
         self.surgery = SurgeryProfile(self.surgery_df)
         self.po = PoProfile(self.po_df)
+
 
     def classify_items(self, exp_boundary=[0, 80, 95, 101], vol_boundary=None):
         po_df = self.po_df
@@ -114,7 +119,7 @@ class ScmAnalytics(AnalyticsCore):
                     s=1)
         plt.show()
 
-    def process_surg_vectors(self, item_ids, normalized=False):
+    def process_surg_vectors(self, item_ids, normalized=False, filter_zeros=True):
         usage_df = self.usage.df
         surg_item_df = self.usage.df.groupby(["event_id"]).agg({
             'used_qty': 'sum'
@@ -133,7 +138,9 @@ class ScmAnalytics(AnalyticsCore):
         for item_id in item_ids:
             surg_item_df["included_items"] = surg_item_df["included_items"] + surg_item_df[item_id]
         surg_item_df = surg_item_df.sort_values(['included_items'], ascending=[0])
-        surg_item_df = surg_item_df[surg_item_df['included_items'] > 0]
+
+        if filter_zeros:
+            surg_item_df = surg_item_df[surg_item_df['included_items'] > 0]
 
         if normalized:
             for item_id in item_ids:

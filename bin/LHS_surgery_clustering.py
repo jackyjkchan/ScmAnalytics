@@ -1,4 +1,5 @@
 from scm_analytics import ScmAnalytics, config
+from os import path
 
 
 if __name__ == "__main__":
@@ -20,6 +21,7 @@ if __name__ == "__main__":
             analytics.usage.booking_leadtime_distribution.set_x_units(x_units)
             analytics.distribution_plot(analytics.usage.df,
                                         analytics.usage.booking_leadtime_distribution,
-                                        filter_dict=surgery_filter,
-                                        save_dir=config.LHS().results_path,
+                                        filters=surgery_filter,
+                                        #save_dir=config.LHS().results_path,
+                                        save_dir=path.join(config.LHS().results_path, "test"),
                                         show=False)
