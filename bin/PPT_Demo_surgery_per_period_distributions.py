@@ -6,13 +6,19 @@ import pandas as pd
 if __name__ == "__main__":
 
     dim = "scheduled_procedures"
-    val = "Hernia Hiatus Repair Laparoscopic"
+    val = "All Hernia Repair"
 
+    surgery_filter = {"dim": "scheduled_procedures",
+                      "op": "re",
+                      "val": "Cholecystectomy Laparoscopic"}
 
-
+    urgent_filter = {"dim": "urgent_elective",
+                      "op": "eq",
+                      "val": "Urgent"}
 
     fn = "Surgery Frequency Distribution {0} = {1}.svg".format(dim, val)
     title = "Distribution of surgeries per day: {0} = {1}".format(dim, val)
+    title = "Urgent Cholecystectomy Laparoscopic Surgery Distribution"
 
     num_clusters = 12
     analytics = ScmAnalytics.ScmAnalytics(config.LHS())
@@ -28,11 +34,17 @@ if __name__ == "__main__":
     start = min(analytics.usage.df["start_date"])
     end = max(analytics.usage.df["start_date"])
 
-    lkup_df = analytics.usage.df[analytics.usage.df[dim] == val]\
-        .groupby(["start_date"])\
-        .agg({"event_id": "nunique"})\
-        .reset_index()\
+    lkup_df = analytics.process_filters(analytics.usage.df, [surgery_filter, urgent_filter]) \
+        .groupby(["start_date"]) \
+        .agg({"event_id": "nunique"}) \
+        .reset_index() \
         .rename(columns={"event_id": "count"})
+
+    # lkup_df = analytics.usage.df[analytics.usage.df[dim] == val]\
+    #     .groupby(["start_date"])\
+    #     .agg({"event_id": "nunique"})\
+    #     .reset_index()\
+    #     .rename(columns={"event_id": "count"})
 
     data_df = pd.DataFrame()
     data_df["start_date"] = pd.date_range(start=start, end=end, freq='D')
@@ -49,7 +61,7 @@ if __name__ == "__main__":
           )
 
     analytics.discrete_distribution_plt(data_df["count"],
-                                        save_dir=path.join(config.LHS().results_path, fn),
+                                        save_dir=path.join(config.LHS().results_path),
                                         show=True,
                                         title=title,
                                         x_label="Surgeries per Day",
