@@ -26,14 +26,12 @@ if __name__ == "__main__":
                                                  )
 
     for item_id in item_ids:
-        analytics.usage.item_usage_distribution.set_item_id(item_id)
-
         df = analytics.process_filters(surg_item_usage_df, [surgery_filter])
         data = df[item_id]
         title = "{0} Item Usage Distribution of Item {1}".format(surgery_filter["val"], item_id)
         fn = "{0}.svg".format(title)
         analytics.discrete_distribution_plt(data,
-                                            save_dir=path.join(config.LHS().results_path, fn),
+                                            save_dir=config.LHS().results_path,
                                             show=True,
                                             title=title,
                                             x_label="Count of Items Used",

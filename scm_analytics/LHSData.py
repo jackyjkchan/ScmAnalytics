@@ -40,13 +40,15 @@ class LHSCData:
         self.item_catalog_fn = "S_StrategicProjLHSCSP-0081-00 Supply Chain Transform2 CPIO ProjectUofT ProjectDataSent to U of T October 26th, 20186. UOT HMMS_Item_Master_Catalog_V5 20180615 with pricing"
         self.usage_fn = "S_StrategicProjLHSCSP-0081-00 Supply Chain Transform2 CPIO ProjectUofT ProjectDataSent to U of T October 26th, 20183._Consumable items (Orange Bag)"
 
-        self.local_historical_surgery_fn = "LHS_surgery_history.xlsx"
-        self.local_case_cart_fn = "LHS_case_cart.xlsx"
+        self.local_historical_surgery_fn = "LHS_surgery_history_v2.xlsx"
+        self.local_case_cart_fn = "LHS_case_cart_v2.csv"
         self.local_procurement_fn = "LHS_PO.xlsx"
+        self.local_hmms_procurement_fn = "LHS_HMMS_PO.xlsx"
         self.local_item_catalog_fn = "LHS_item_catalog.xlsx"
         self.local_usage_fn = "LHS_usage.xlsx"
 
         self.po_df = pd.DataFrame()
+        self.hmms_po_df = pd.DataFrame()
         self.surgery_df = pd.DataFrame()
         self.case_cart_df = pd.DataFrame()
         self.usage_df = pd.DataFrame()
@@ -55,13 +57,14 @@ class LHSCData:
 
     def load_po(self):
         self.po_df = pd.read_excel(os.path.join(self.local_src_path, self.local_procurement_fn))
+        self.hmms_po_df = pd.read_excel(os.path.join(self.local_src_path, self.local_hmms_procurement_fn))
         #self.po_df["PO_DATE2"] = pd.to_datetime(self.po_df["PO_DATE"])
 
     def load_surgery(self):
         self.surgery_df = pd.read_excel(os.path.join(self.local_src_path, self.local_historical_surgery_fn))
 
     def load_case_cart(self):
-        self.case_cart_df = pd.read_excel(os.path.join(self.local_src_path, self.local_case_cart_fn))
+        self.case_cart_df = pd.read_csv(os.path.join(self.local_src_path, self.local_case_cart_fn))
 
     def load_item_catalog(self):
         self.item_catalog_df = pd.read_excel(os.path.join(self.local_src_path, self.local_item_catalog_fn))
@@ -71,10 +74,11 @@ class LHSCData:
 
     def cache_all(self):
         self.po_df.to_pickle(os.path.join(self.local_cache_path, "po_df"))
+        self.hmms_po_df.to_pickle(os.path.join(self.local_cache_path, "hmms_po_df"))
         self.surgery_df.to_pickle(os.path.join(self.local_cache_path, "surgery_df"))
         self.case_cart_df.to_pickle(os.path.join(self.local_cache_path, "case_cart_df"))
-        self.usage_df.to_pickle(os.path.join(self.local_cache_path, "usage_df"))
-        self.item_catalog_df.to_pickle(os.path.join(self.local_cache_path, "item_catalog_df"))
+        #self.usage_df.to_pickle(os.path.join(self.local_cache_path, "usage_df"))
+        #self.item_catalog_df.to_pickle(os.path.join(self.local_cache_path, "item_catalog_df"))
 
     def load_cache(self):
         self.po_df = pd.read_pickle(os.path.join(self.local_cache_path, "po_df"))
@@ -89,3 +93,12 @@ class LHSCData:
         self.po_df["PO_NO"] = self.po_df["PO_NO"].astype(str)
         self.po_df = self.po_df[self.po_df["QTY"].notna()]
         self.po_df = self.po_df[self.po_df["UNIT PRICE"].notna()]
+
+lhs = LHSCData()
+lhs.load_po()
+lhs.load_surgery()
+lhs.load_case_cart()
+#lhs.load_item_catalog()
+#lhs.load_usage()
+lhs.cache_all()
+

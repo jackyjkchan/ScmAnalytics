@@ -21,7 +21,8 @@ def main():
                                    analytics.usage.total_used_qty_metric,
                                    "kmean_label",
                                    filters=filter_dict,
-                                       save_dir=path.join(config.LHS().results_path, "test")
+                                   save_dir=path.join(config.LHS().results_path, "test"),
+                                   show=True
                                    )
 
         analytics.metrics_barchart(analytics.usage.df,

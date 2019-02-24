@@ -10,6 +10,7 @@ from scm_analytics.AnalyticsCore import AnalyticsCore
 from scm_analytics.profiles.UsageProfile import UsageProfile
 from scm_analytics.profiles.SurgeryProfile import SurgeryProfile
 from scm_analytics.profiles.PoProfile import PoProfile
+from scm_analytics.profiles.CaseCartProfile import CaseCartProfile
 
 #from scm_analytics.profiles import SurgeryProfile, UsageProfile
 
@@ -22,17 +23,17 @@ class ScmAnalytics(AnalyticsCore):
 
         # deprecated, to be removed
         data_model_path = configs.data_model_path
-        self.po_df = pd.read_pickle(path.join(data_model_path, "po_df"))
-        self.usage_df = pd.read_pickle(path.join(data_model_path, "usage_df"))
-        self.case_cart_df = pd.read_pickle(path.join(data_model_path, "case_cart_df"))
+        po_df = pd.read_pickle(path.join(data_model_path, "po_df"))
+        usage_df = pd.read_pickle(path.join(data_model_path, "usage_df"))
+        case_cart_df = pd.read_pickle(path.join(data_model_path, "case_cart_df"))
         self.item_catalog_df = pd.read_pickle(path.join(data_model_path, "item_catalog_df"))
-        self.surgery_df = pd.read_pickle(path.join(data_model_path, "surgery_df"))
+        surgery_df = pd.read_pickle(path.join(data_model_path, "surgery_df"))
 
         # new way of storing dfs
-        self.usage = UsageProfile(self.usage_df)
-        self.surgery = SurgeryProfile(self.surgery_df)
-        self.po = PoProfile(self.po_df)
-
+        self.usage = UsageProfile(usage_df)
+        self.surgery = SurgeryProfile(surgery_df)
+        self.po = PoProfile(po_df)
+        self.case_cart = CaseCartProfile(case_cart_df)
 
     def classify_items(self, exp_boundary=[0, 80, 95, 101], vol_boundary=None):
         po_df = self.po_df
@@ -64,11 +65,11 @@ class ScmAnalytics(AnalyticsCore):
         return item_ABC[["item_id", "abc_class", "total_expenditure", "qty_ea", "ea_price"]]
 
     def classify_usage_items(self, exp_boundary=[0, 60, 95, 101], vol_boundary=None):
-        usage_df = self.usage_df
+        usage_df = self.usage.df
         catalog_df = self.item_catalog_df
         usage_df = usage_df[usage_df["code_name"] != "INSTRUMENTS REUSABLE"]
         usage_df["total_expenditure"] = usage_df["used_qty"] * usage_df["unit_price"]
-        item_ABC = usage_df.groupby( ["item_id"]).agg({
+        item_ABC = usage_df.groupby(["item_id"]).agg({
             'used_qty': 'sum',
             'total_expenditure': 'sum',
             'unit_price': 'mean',
@@ -91,7 +92,7 @@ class ScmAnalytics(AnalyticsCore):
                                   how="left",
                                   rsuffix="abc")
 
-        return item_ABC[["item_id", "abc_class", "total_expenditure", "used_qty", "unit_price"]]
+        return item_ABC[["item_id", "code_name", "abc_class", "total_expenditure", "used_qty", "unit_price"]]
 
     def price_vs_vol_scatterplot(self, expense_cutoff=0.4):
         po_df = self.po_df
@@ -176,7 +177,7 @@ class ScmAnalytics(AnalyticsCore):
         labels = kmean_model.predict(X)
         surg_item_usage_df["kmean_label"] = labels
         surg_item_usage_df = surg_item_usage_df.join(
-            self.surgery_df[["event_id", "scheduled_procedures", "case_service"]].set_index("event_id"),
+            self.surgery.df[["event_id", "scheduled_procedures", "case_service"]].set_index("event_id"),
             on="event_id",
             how="left",
             rsuffix="surgery")

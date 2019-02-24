@@ -6,13 +6,16 @@ from os import path
 def lhs_etl_routine():
     cache_path = 'C:\\Users\Jacky\Google Drive\MASc\workspace\inventory_supplychain_model\cache'
     local_cache_path = path.join(cache_path, "lhs_raw")
-    dump_data_model_path = path.join(cache_path, "lhs_data_model")
+    dump_data_model_path = path.join(cache_path, "lhs_data_modelv2")
 
     po_df = pd.read_pickle(path.join(local_cache_path, "po_df"))
+    hmms_po_df = pd.read_pickle(path.join(local_cache_path, "hmms_po_df"))
     surgery_df = pd.read_pickle(path.join(local_cache_path, "surgery_df"))
     case_cart_df = pd.read_pickle(path.join(local_cache_path, "case_cart_df"))
     usage_df = pd.read_pickle(path.join(local_cache_path, "usage_df"))
     item_catalog_df = pd.read_pickle(path.join(local_cache_path, "item_catalog_df"))
+
+    case_cart_df = case_cart_df[case_cart_df["SchEventId"].isin(set(usage_df["SchEventId"]))]
 
     po_df["PO_DATE"] = pd.to_datetime(po_df["PO_DATE"])
     po_df["LAST_RCV_DATE"] = pd.to_datetime(po_df["LAST_RCV_DATE"])
@@ -32,6 +35,34 @@ def lhs_etl_routine():
         "QTY_RCV_TO_DATE":  "qty_received"
     }
     po_df = po_df.rename(columns=po_rename)
+
+    hmms_po_df["REQ_DATE"] = pd.to_datetime(hmms_po_df["REQ_DATE"])
+    #hmms_po_df["LAST_RCV_DATE"] = pd.to_datetime(po_df["LAST_RCV_DATE"])
+    hmms_po_df["REQ_NO"] = hmms_po_df["REQ_NO"].astype(str).apply(lambda x: "hmms_{0}".format(x))
+    hmms_po_df = hmms_po_df[hmms_po_df["QTY"].notna()]
+    hmms_po_df = hmms_po_df[hmms_po_df["UNIT PRICE"].notna()]
+
+    hmms_po_rename = {
+        "REQ_NO": "po_id",
+        "REQ_DATE": "order_date",
+        "ITEM_NO": "item_id",
+        "QTY": "qty",
+        "UM_CD": "unit_of_measure",
+        "UNIT PRICE": "unit_price"
+        #"LAST_RCV_DATE": "delivery_date",
+        #"QTY_RCV_TO_DATE": "qty_received"
+    }
+    hmms_po_df = hmms_po_df.rename(columns=hmms_po_rename)
+    hmms_po_df["delivery_date"] = hmms_po_df["order_date"]
+    hmms_po_df["item_id"] = hmms_po_df["item_id"].astype(str)
+    po_df = pd.concat([po_df, hmms_po_df])[["po_id",
+                                            "item_id",
+                                            "qty",
+                                            "order_date",
+                                            "delivery_date",
+                                            "po_class",
+                                            "unit_of_measure",
+                                            "unit_price"]]
 
     surgery_rename = {
         "SchEventId":                           "event_id",
@@ -57,6 +88,7 @@ def lhs_etl_routine():
         "OPEN_QTY":     "open_qty",
         "HOLD_QTY":     "hold_qty"
     }
+
     case_cart_df = case_cart_df.rename(columns=case_cart_rename)
     case_cart_df["event_id"] = case_cart_df["event_id"].values.astype(str)
     case_cart_df["item_id"] = case_cart_df["item_id"].values.astype(str)
@@ -103,6 +135,13 @@ def lhs_etl_routine():
     usage_df = usage_df[usage_df["item_id"].isin(common_items)]
     po_df = po_df[po_df["item_id"].isin(common_items)]
     item_catalog_df = item_catalog_df[item_catalog_df["item_id"].isin(common_items)]
+
+    # add scheduled procedures to case_cart
+    case_cart_df = case_cart_df.join(surgery_df[["event_id",
+                                                 "scheduled_procedures"]].set_index("event_id"),
+                                     on="event_id",
+                                     how="left",
+                                     rsuffix="surgery")
 
     # normalize usage data
     usage_df = usage_df.join(item_catalog_df[["item_id", "price1"]].set_index("item_id"),

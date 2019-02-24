@@ -10,13 +10,11 @@ class PoProfile(BaseProfile):
         self.mandatory_columns = [
             "po_id",
             "order_date",
-            "STAT",
             "po_class",
             "item_id",
             "qty",
             "unit_of_measure",
             "unit_price",
-            "qty_received",
             "delivery_date",
             "qty_ea"
         ]

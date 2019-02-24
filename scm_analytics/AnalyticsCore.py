@@ -32,8 +32,13 @@ class AnalyticsCore:
             df = df[df[filter_dict["dim"]].apply(lambda x: bool(re.search(pattern.lower(), str(x).lower())))]
         return df
 
-    def metrics_barchart(self, df, metric, groupby_dim, filters=None, save_dir=None, show=False):
+    def metrics_barchart(self, df, metric, groupby_dim,  title=None, filters=None, save_dir=None, show=False, order=[]):
         data = metric.get_data(df, groupby_dim=groupby_dim, filters=filters)
+        if order:
+            mapping = {day: i for i, day in enumerate(order)}
+            key = data['x'].map(mapping)
+            data = data.iloc[key.argsort()]
+
         metric_name = metric.metric_name
 
         index = np.arange(len(set(data["x"])))
@@ -42,10 +47,11 @@ class AnalyticsCore:
                 )
         plt.ylabel(metric_name)
         plt.xlabel(groupby_dim)
-        title = metric_name + " grouped by " + groupby_dim
-        if filters:
-            title = title + " [" + self.filter_desc(filters) + "]"
-        plt.title(title)
+        if not title:
+            title = metric_name + " grouped by " + groupby_dim
+            if filters:
+                title = title + " [" + self.filter_desc(filters) + "]"
+            plt.title(title)
         if save_dir:
             plt.savefig(path.join(save_dir, title+".svg"),
                         format='svg',
@@ -209,6 +215,7 @@ class AnalyticsCore:
                         papertype='letter')
         if show:
             plt.show()
+        plt.close()
         return
 
 
