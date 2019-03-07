@@ -12,7 +12,6 @@ def main():
     min_usages = 200
     po_usage_threshold = 0.33
 
-
     analytics = ScmAnalytics.ScmAnalytics(config.LHS())
     usage_df = analytics.usage.df
     start = min(usage_df["start_dt"])

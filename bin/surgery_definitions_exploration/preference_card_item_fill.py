@@ -82,19 +82,19 @@ for item_id in item_df[item_df["used_qty"] > 200]["item_id"]:
                      how="left",
                      rsuffix="usage"
                      ).fillna(0)
-    # for label in set(data["fill_qty"]):
-    #     d = data[data["fill_qty"] == label]
-    #     title = "Usage_Distribution_By_Surgeries_Per_Label[item_id={0}][label_filled_qty={1}]".format(item_id,
-    #                                                                                                   str(int(label)))
-    #     analytics.discrete_distribution_plt(d["used_qty"],
-    #                                         title=title,
-    #                                         save_dir="filled_qty_as_label",
-    #                                         x_label="Usages Per Surgery",
-    #                                         y_label="Frequency (Surgery Count)")
+    for label in set(data["fill_qty"]):
+        d = data[data["fill_qty"] == label]
+        title = "Usage_Distribution_By_Surgeries_Per_Label[item_id={0}][label_filled_qty={1}]".format(item_id,
+                                                                                                      str(int(label)))
+        analytics.discrete_distribution_plt(d["used_qty"],
+                                            title=title,
+                                            save_dir="filled_qty_as_label",
+                                            x_label="Usages Per Surgery",
+                                            y_label="Frequency (Surgery Count)")
 
     order = list(set(data["fill_qty"]))
     order.sort()
-    #order = [str(x) for x in order]
+    # order = [str(x) for x in order]
     title = "Total_Usage_By_Surgeries_Labels[item_id={0}]]".format(item_id)
     analytics.metrics_barchart(data,
                                TotalUsedQtyMetric(),

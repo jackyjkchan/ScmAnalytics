@@ -36,3 +36,27 @@ class UsageProfile(BaseProfile):
 
     def preprocess_columns(self):
         self.df['booking_leadtime'] = self.df['start_dt'] - self.df['booking_dt']
+
+    def get_pref_item_fill_surgery_labels(self, item_id, case_cart_df):
+        usage_filtered_df = self.df[self.df["item_id"] == item_id]
+        usage_filtered_df = usage_filtered_df[usage_filtered_df["start_dt"].notna()]
+        usage_events = set(usage_filtered_df["event_id"])
+        case_cart_filtered_df = case_cart_df[case_cart_df["item_id"] == item_id]
+        case_cart_filtered_df = case_cart_filtered_df[case_cart_filtered_df["event_id"].isin(usage_events)]
+
+        usage_cleaned_df = usage_filtered_df.groupby(["event_id", "item_id"]).agg({"code_name": "max",
+                                                                                   "used_qty": "max",
+                                                                                   "start_dt": "max",
+                                                                                   "urgent_elective": "max"
+                                                                                   }).reset_index()
+        case_cart_cleaned_df = case_cart_filtered_df.groupby(["event_id", "item_id"]).agg({"fill_qty": "max"}
+                                                                                          ).reset_index()
+        usage_cleaned_df = usage_cleaned_df.join(case_cart_cleaned_df.set_index(["event_id"]),
+                                                 on="event_id",
+                                                 how="outer",
+                                                 rsuffix="case_cart").fillna(0)
+        return usage_cleaned_df
+
+
+
+
