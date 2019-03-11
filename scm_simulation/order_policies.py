@@ -40,17 +40,18 @@ class DeterministicConDOIPolicyV2(OrderPolicy):
         self.item_id = item_id
         self.constant_days = constant_days
 
-    def action(self, hospital):
+    def action(self, env, hospital):
         k = self.constant_days
         delivery_time = hospital.order_lead_times[self.item_id].mean()
         expected_demand = 0
         if self.item_id in hospital.item_stochastic_demands:
             expected_demand += hospital.item_stochastic_demands[self.item_id].mean()
         for surgery in hospital.surgeries:
+            horizon = round(int(k+delivery_time))
             expected_surgeries = hospital.surgery_stochastic_demand[surgery].mean()
-            expected_surgeries += np.mean(hospital.surgery_schedule[surgery][0:round(int(k+delivery_time))]) \
-                if len(hospital.surgery_schedule[surgery]) >= k+delivery_time \
-                else np.mean(hospital.surgery_schedule[surgery])
+            expected_surgeries += np.mean(hospital.surgery_schedule[surgery][env.now: env.now+horizon]) \
+                if len(hospital.surgery_schedule[surgery]) > env.now+horizon \
+                else np.mean(hospital.surgery_schedule[surgery][env.now:])
             if self.item_id in hospital.surgery_item_usage[surgery]:
                 expected_item_usage = hospital.surgery_item_usage[surgery][self.item_id].mean()
                 expected_demand += expected_surgeries * expected_item_usage
@@ -71,7 +72,7 @@ class DeterministicConDOIPolicyV2WithoutSchedule(OrderPolicy):
         self.item_id = item_id
         self.constant_days = constant_days
 
-    def action(self, hospital):
+    def action(self, env, hospital):
         k = self.constant_days
         delivery_time = hospital.order_lead_times[self.item_id].mean()
         expected_demand = 0

@@ -65,8 +65,7 @@ def run_item_driven_simulation(config, SIM_TIME=10000, WARMUP=500, show=False):
 
     env = simpy.Environment()
 
-    env.process(warm_up(env, WARMUP, hospital))
-    env.process(demand_stochastic(env, item_stochastic_demands, hospital))
+    env.process(item_demand(env, item_stochastic_demands, hospital))
     env.process(place_order(env, ordering_policies, item_delivery_times, hospital))
     env.process(hospital_bookkeeping(env, hospital))
     env.run(until=SIM_TIME)
@@ -94,6 +93,7 @@ def run_stochastic_surgery_driven_simulation(config, SIM_TIME=100000, WARMUP=500
     outstanding_orders = config.outstanding_orders
 
     random.seed(RANDOM_SEED)
+    env = simpy.Environment()
     hospital = Hospital(item_ids,
                         ordering_policies,
                         item_delivery_times,
@@ -106,8 +106,7 @@ def run_stochastic_surgery_driven_simulation(config, SIM_TIME=100000, WARMUP=500
     hospital.set_sim_time(SIM_TIME)
     env = simpy.Environment()
 
-    env.process(warm_up(env, WARMUP, hospital))
-    env.process(surgery_demand_stochastic(env, hospital))
+    env.process(item_demand_from_surgeries(env, hospital))
     env.process(place_order(env, ordering_policies, item_delivery_times, hospital))
     env.process(hospital_bookkeeping(env, hospital))
     env.run(until=SIM_TIME)
@@ -129,7 +128,8 @@ def run_booked_surgery_driven_simulation(config, SIM_TIME=100000, WARMUP=500, sh
     initial_inventory = config.initial_inventory
     outstanding_orders = config.outstanding_orders
 
-    #random.seed(RANDOM_SEED)
+    random.seed(RANDOM_SEED)
+    env = simpy.Environment()
     hospital = Hospital(item_ids,
                         ordering_policies,
                         item_delivery_times,
@@ -141,10 +141,8 @@ def run_booked_surgery_driven_simulation(config, SIM_TIME=100000, WARMUP=500, sh
     hospital.set_surgery_stochastic_demand(config.surgery_stochastic_demand)
     hospital.set_booked_surgery_stochastic_demand(config.surgery_booked_demand)
     hospital.set_sim_time(SIM_TIME)
-    env = simpy.Environment()
 
-    env.process(warm_up(env, WARMUP, hospital))
-    env.process(surgery_demand_stochastic(env, hospital))
+    env.process(item_demand_from_surgeries(env, hospital))
     env.process(book_surgeries(env, hospital))
     env.process(place_order(env, ordering_policies, item_delivery_times, hospital))
     env.process(hospital_bookkeeping(env, hospital))

@@ -1,14 +1,14 @@
 class Hospital:
 
     def __init__(self, item_ids, ordering_policies, item_delivery_times, item_stochastic_demands, initial_inventory,
-                 outstanding_orders, surgeries=[], booking_lead_time=14):
+                 outstanding_orders, surgeries=[]):
         # hospital parameters, these are set at the start of the simulation and do not change
         #   item_ids to simulate
         #   ordering policy
         #   order lead time distribution
         #   stochastic demand distribution
 
-        # list
+        # list of item ids and surgery labels to simulate
         self.item_ids = item_ids
         self.surgeries = surgeries
         # dictionaries
@@ -21,8 +21,8 @@ class Hospital:
         # item_id: NumberGenerator, random demand for items (no surgeries)
         self.item_stochastic_demands = item_stochastic_demands
 
-        # surgery_label: {item_id: NumberGenerator}
-        # lookup table for item usage by surgery label
+        # {surgery_label: {item_id: NumberGenerator}}
+        # lookup table for item usage object by surgery label
         self.surgery_item_usage = None
 
         # surgery_label: NumberGenerator
@@ -37,15 +37,16 @@ class Hospital:
         #   inventory, stock of items
         #   outstanding orders
 
-        # initial inventory level for each item
+        # current initial inventory level for each item
         self.inventory = initial_inventory
         assert (item_id in initial_inventory for item_id in item_ids)
 
         # outstanding orders
         self.orders = outstanding_orders if outstanding_orders else {item_id: set() for item_id in item_ids}
 
-        # keep track of booking_lead_time number of surgeries in the future
-        self.surgery_schedule = {surgery: [0]*booking_lead_time for surgery in surgeries}
+        # keep track of number of surgeries being booked into the schedule.
+        # dictionary mapping surgery label to list. surgery_schedule["A"][x] = number of surgery A booked for day x.
+        self.surgery_schedule = {surgery: [0] for surgery in surgeries}
 
         # Performance measures to collect
         #   stock out events
@@ -71,12 +72,14 @@ class Hospital:
         self.historical_orders = {item_id: [0] * sim_time for item_id in self.item_ids}
         self.historical_deliveries = {item_id: [0] * sim_time for item_id in self.item_ids}
         self.historical_demand = {item_id: [0] * sim_time for item_id in self.item_ids}
+        self.surgery_schedule = {surgery: [0] * sim_time for surgery in self.surgeries}
 
     def clean_data(self, warm_up):
         for item_id in self.item_ids:
-            print(item_id)
-            # self.historical_inventory_levels[item_id] = self.historical_inventory_levels[item_id][warm_up:]
-            # self.historical_orders[item_id] = self.historical_orders[item_id][warm_up:]
-            # self.historical_deliveries[item_id] = self.historical_deliveries[item_id][warm_up:]
-            # self.historical_demand[item_id] = self.historical_demand[item_id][warm_up:]
+            self.historical_inventory_levels[item_id] = self.historical_inventory_levels[item_id][warm_up:]
+            self.historical_orders[item_id] = self.historical_orders[item_id][warm_up:]
+            self.historical_deliveries[item_id] = self.historical_deliveries[item_id][warm_up:]
+            self.historical_demand[item_id] = self.historical_demand[item_id][warm_up:]
+            self.stockouts[item_id] = [t-warm_up for t in self.stockouts[item_id]]
+            self.stockouts[item_id] = list(filter(lambda x: x >= 0, self.stockouts[item_id]))
 
