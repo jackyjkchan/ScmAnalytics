@@ -1,3 +1,11 @@
+"""
+THIS FILE IS DEPRECATED, CAN BE DELETED
+demand for items is slightly different when we use 2 distributions vs 1
+i.e. summing up the realized random variable of urgent and elective surgeries or just using
+1 random variable for the surgery. It is more fair to change the policy to decide to use the
+surgery schedule or just the expectation of surgeries instead.
+"""
+
 import simpy
 import random
 from pprint import pprint
