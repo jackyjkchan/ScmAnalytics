@@ -183,6 +183,7 @@ class AnalyticsCore:
                         papertype='letter')
         if show:
             plt.show()
+        plt.close()
         return
 
     def discrete_distribution_plt(self, data, overflow=None, save_dir=None, show=False, title=None, x_label=None, y_label=None):
