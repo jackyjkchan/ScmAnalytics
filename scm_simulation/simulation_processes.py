@@ -97,7 +97,13 @@ def item_demand_with_backorders(env, item_demand_generator, hospital):
 
 
 def ship_order(env, item_id, qty, delivery_time, hospital):
-    """ Process: qty amount of item_id taking ship_time to arrive at the hospital.
+    """
+    DEPRECATED: This process is being removed due to a minor timing bug. Order of events differ from when lead time is 1
+    vs when lead time is larger than 1. When lead time is larger than 1, this event will be scheduled first for that
+    time step. However if lead time is 1, it will be scheduled just after demand and order placing events.
+    This is generally not a problem as lead time is generally greater than 1 but this inconsistency has been addressed
+    by the receive order process.
+    Process: qty amount of item_id taking ship_time to arrive at the hospital.
     created by place_order process
     """
     while True:
@@ -109,18 +115,41 @@ def ship_order(env, item_id, qty, delivery_time, hospital):
         env.exit()
 
 
+def remove_order(env, item_id, qty, delivery_time, hospital):
+    """
+    Process: Replacement for Deprecated ship_order process. This just removes the order from the pending order set.
+    This is necessary for policies to determine amount of outstanding order correctly.
+    """
+    while True:
+        order_time = env.now
+        yield env.timeout(delivery_time)
+        hospital.orders[item_id].remove((order_time, qty))
+        env.exit()
+
+
+def receive_order(env, hospital):
+    """ Process:
+    """
+    while True:
+        yield env.timeout(1)
+
+        for item_id in hospital.item_ids:
+            qty = hospital.historical_deliveries[item_id][env.now]
+            hospital.inventory[item_id] += hospital.historical_deliveries[item_id][env.now]
+            #print("time:", env.now, "inv:", hospital.inventory[item_id])
+
+
 def place_order(env, ordering_policies, item_delivery_times, hospital):
     """Process: decision maker placing orders by implementing a given policy by calling policy.action(hospital)"""
     while True:
         yield env.timeout(1)
-
         for item_id in hospital.item_ids:
             order_qty = ordering_policies[item_id].action(env, hospital)
             hospital.orders[item_id].add((env.now, order_qty))
             hospital.historical_orders[item_id][env.now] += order_qty
             delivery_time = item_delivery_times[item_id].gen()
-
-            env.process(ship_order(env, item_id, order_qty, delivery_time, hospital))
+            if env.now + delivery_time < len(hospital.historical_deliveries[item_id]):
+                hospital.historical_deliveries[item_id][env.now + delivery_time] += order_qty
 
 
 def hospital_bookkeeping(env, hospital):
