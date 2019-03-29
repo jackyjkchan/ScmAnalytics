@@ -9,6 +9,12 @@ def create_preference_card_frozensets(data):
     return frozenset((item_id, filled_qty) for item_id, filled_qty in zip(data["item_id"], data["fill_qty"]))
 
 
+def create_preference_card_frozensets_v2(data):
+    # Takes a case cart DataFrame grouped by case_cart_id or (surgery) event_id
+    # and creates a frozen set of (item_id, filled_qty) per case_cart
+    return frozenset(item_id for item_id, filled_qty in zip(data["item_id"], data["fill_qty"]))
+
+
 if __name__ == "__main__":
     analytics = ScmAnalytics.ScmAnalytics(config.LHS())
 
@@ -22,17 +28,20 @@ if __name__ == "__main__":
     #case_cart_df = analytics.case_cart.df[analytics.case_cart.df["item_id"].isin(usage_items)]
 
     preference_card_df = case_cart_df.groupby(["case_cart_id"])\
-                                     .apply(create_preference_card_frozensets)\
+                                     .apply(create_preference_card_frozensets_v2)\
                                      .reset_index(name='pref_card')
 
     preference_card_df = preference_card_df.groupby(["pref_card"]).agg({
             'case_cart_id': 'nunique'
     }).reset_index()
 
+    preference_card_df.to_csv("preference_card_vw_(id).csv")
+
+
     data = list(preference_card_df["case_cart_id"])
-    title = "'Pref Card' Usage Distribution"#+" (Filtered on Usage Items Only)"
+    title = "'Pref Card (item_id)' Usage Distribution"#+" (Filtered on Usage Items Only)"
     analytics.discrete_distribution_plt(data,
-                                        save_dir=path.join(config.LHS().results_path),
+                                        save_dir="./",
                                         overflow=20,
                                         show=True,
                                         title=title,

@@ -69,9 +69,9 @@ for case_service in set(surgeries["case_service"]).union({None}):
     plt.ylabel("Ratio of Surgeries with Usage data")
     plt.xlabel("Week # starting from first week of OrangeBag project")
     plt.legend()
-    plt.savefig(path.join(path.join(config.LHS().results_path, "usage_ratio"), title + ".svg"),
-                        format='svg',
-                        orientation='landscape',
-                        papertype='letter')
+    plt.savefig(path.join(path.join("results"), title + ".svg"),
+                format='svg',
+                orientation='landscape',
+                papertype='letter')
     #plt.show()
 

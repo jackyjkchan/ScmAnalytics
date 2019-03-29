@@ -159,7 +159,7 @@ title = "Inventory Trace, Average Demand={0:0.2f}, Inv_Level={1:0.2f}, Days_Of_I
             mean(hospital.historical_inventory_levels[item_id])/mean(hospital.historical_demand[item_id]))
 axes[2].set_title(title)
 axes[2].legend()
-#splt.show()
+plt.show()
 plt.savefig(path.join(results_dir, title+".svg"),
             format='svg',
             orientation='landscape',

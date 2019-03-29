@@ -17,7 +17,7 @@ class BaseMetric:
             df = df[df[filter_dict["dim"]].apply(lambda x: bool(re.search(pattern.lower(), str(x).lower())))]
         return df
 
-    def get_data(self, df, groupby_dim=None, filters=None, args=None):
+    def get_data(self, df, groupby_dim=None, filters=None, args={}):
         if groupby_dim:
             df = df[df[groupby_dim].notna()]
         if filters:
@@ -26,7 +26,7 @@ class BaseMetric:
             df = self.process_filters(df, filters)
         return self.compute_metric(df, groupby_dim, args=args)
 
-    def compute_metric(self, df, groupby_dim, args=None):
+    def compute_metric(self, df, groupby_dim, args={}):
         data = df[[groupby_dim, "used_qty"]] \
             .groupby([groupby_dim]) \
             .agg({'used_qty': 'sum'}) \

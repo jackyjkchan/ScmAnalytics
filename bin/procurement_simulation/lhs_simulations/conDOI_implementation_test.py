@@ -54,7 +54,7 @@ def main(item_id, lead_time_sample, demand_sample, policy=DeterministicConDOIPol
     env = simpy.Environment()
 
     env.process(place_order(env, ordering_policies, item_delivery_times, hospital))
-    env.process(demand_stochastic(env, item_stochastic_demands, hospital))
+    env.process(item_demand(env, item_stochastic_demands, hospital))
     env.process(hospital_bookkeeping(env, hospital))
     env.run(until=SIM_TIME)
     print("historical inventory levels")

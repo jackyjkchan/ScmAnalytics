@@ -94,16 +94,21 @@ class ItemUsagePerDayDistribution(BaseMetric):
         self.x_label = "Number of items used ({0})".format(self.x_units)
         self.item_id = None
 
-    def compute_metric(self, df, groupby_dim, args=None):
+    def compute_metric(self, df, groupby_dim, args={}):
         usage_df = df
+        if len(usage_df) == 0:
+            return [0]
         usage_df["start_date"] = usage_df["start_dt"].apply(lambda x: x.date())
-        start = min(usage_df["start_date"])
-        end = max(usage_df["start_date"])
+        start = args["start"] if "start" in args else min(usage_df["start_date"])
+        end = args["end"] if "end" in args else max(usage_df["start_date"])
 
         lkup_df = usage_df[usage_df["item_id"] == self.item_id] \
             .groupby(["start_date"]) \
             .agg({"used_qty": "sum"}) \
             .reset_index()
+
+        if len(lkup_df) == 0:
+            return [0]
 
         data_df = pd.DataFrame()
         data_df["start_date"] = pd.date_range(start=start, end=end, freq='D')

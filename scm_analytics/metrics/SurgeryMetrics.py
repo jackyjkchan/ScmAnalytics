@@ -24,11 +24,13 @@ class SurgeriesPerDayDistribution(BaseMetric):
         self.y_label = "Frequency (Count of Days)"
         self.x_label = "Number of Surgeries in a day"
 
-    def compute_metric(self, df, groupby_dim, args=None):
+    def compute_metric(self, df, groupby_dim, args={}):
         surgery_df = df
+        if len(surgery_df) == 0:
+            return [0]
         surgery_df["start_date"] = surgery_df["start_dt"].apply(lambda x: x.date())
-        start = min(surgery_df["start_date"])
-        end = max(surgery_df["start_date"])
+        start = args["start"] if "start" in args else min(surgery_df["start_date"])
+        end = args["end"] if "end" in args else max(surgery_df["start_date"])
 
         lkup_df = surgery_df.groupby(["start_date"]) \
                             .agg({"event_id": "nunique"}) \
@@ -37,16 +39,16 @@ class SurgeriesPerDayDistribution(BaseMetric):
         data_df = pd.DataFrame()
         data_df["start_date"] = pd.date_range(start=start, end=end, freq='D')
         data_df["start_date"] = data_df["start_date"].apply(lambda x: x.date())
-        data_df = data_df.join(lkup_df[["start_date", "event_id"]].set_index(["start_date"]),
-                               on="start_date",
-                               how="left",
-                               rsuffix="surgery").fillna(0)
+
+        if len(lkup_df):
+            data_df = data_df.join(lkup_df[["start_date", "event_id"]].set_index(["start_date"]),
+                                   on="start_date",
+                                   how="left",
+                                   rsuffix="surgery").fillna(0)
+        else:
+            data_df["event_id"] = 0
         # i think im missing a groupby here
         return data_df["event_id"].rename(columns={"event_id": 'y'})
-
-    def set_item_id(self, item_id):
-        self.item_id = item_id
-        self.metric_name = self.metric_name_base + " id " + str(item_id)
 
 
 class SurgeryCount(BaseMetric):

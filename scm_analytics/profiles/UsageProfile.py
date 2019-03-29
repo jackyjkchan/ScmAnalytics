@@ -57,6 +57,20 @@ class UsageProfile(BaseProfile):
                                                  rsuffix="case_cart").fillna(0)
         return usage_cleaned_df
 
+    def label_events_with_pref_item_fill_qty(self, item_id, case_cart_df, df_to_label):
+        events = set(df_to_label["event_id"])
+        case_cart_filtered_df = case_cart_df[case_cart_df["item_id"] == item_id]
+        case_cart_filtered_df = case_cart_filtered_df[case_cart_filtered_df["event_id"].isin(events)]
+
+        case_cart_cleaned_df = case_cart_filtered_df.groupby(["event_id"])\
+                                                    .agg({"fill_qty": "max"})\
+                                                    .reset_index()
+        df_to_label = df_to_label.join(case_cart_cleaned_df[["event_id", "fill_qty"]].set_index(["event_id"]),
+                                                 on="event_id",
+                                                 how="outer",
+                                                 rsuffix="case_cart").fillna(0)
+        return df_to_label
+
 
 
 

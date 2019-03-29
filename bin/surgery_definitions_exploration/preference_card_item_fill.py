@@ -72,8 +72,14 @@ usage_cleaned_df = usage_labeled_df.groupby(["event_id", "item_id"]).agg({"fill_
                                                                           }).reset_index()
 
 
+summary = {}
+#summary[item_id][surgery_label] = (total_item_usage, surgery_count, mean_item_usage)
+
 # extract surgery definitions for each item and dump usage distributions.
-for item_id in item_df[item_df["used_qty"] > 200]["item_id"]:
+item_ids = item_df[item_df["used_qty"] > 200]["item_id"]
+for item_id in item_ids:
+    summary[item_id] = {}
+
     data = pd.DataFrame()
     data["event_id"] = list(set(usage_df["event_id"]))
     data = data.join(usage_cleaned_df[usage_cleaned_df["item_id"] == item_id]
@@ -84,21 +90,41 @@ for item_id in item_df[item_df["used_qty"] > 200]["item_id"]:
                      ).fillna(0)
     for label in set(data["fill_qty"]):
         d = data[data["fill_qty"] == label]
-        title = "Usage_Distribution_By_Surgeries_Per_Label[item_id={0}][label_filled_qty={1}]".format(item_id,
-                                                                                                      str(int(label)))
-        analytics.discrete_distribution_plt(d["used_qty"],
-                                            title=title,
-                                            save_dir="filled_qty_as_label",
-                                            x_label="Usages Per Surgery",
-                                            y_label="Frequency (Surgery Count)")
+        # title = "Usage_Distribution_By_Surgeries_Per_Label[item_id={0}][label_filled_qty={1}]".format(item_id,
+        #                                                                                               str(int(label)))
+        # analytics.discrete_distribution_plt(d["used_qty"],
+        #                                     title=title,
+        #                                     save_dir="filled_qty_as_label",
+        #                                     x_label="Usages Per Surgery",
+        #                                     y_label="Frequency (Surgery Count)")
 
-    order = list(set(data["fill_qty"]))
-    order.sort()
-    # order = [str(x) for x in order]
-    title = "Total_Usage_By_Surgeries_Labels[item_id={0}]]".format(item_id)
-    analytics.metrics_barchart(data,
-                               TotalUsedQtyMetric(),
-                               "fill_qty",
-                               title=title,
-                               save_dir="filled_qty_as_label",
-                               order=order)
+        summary[item_id][label] = (sum(d["used_qty"]), len(d["used_qty"]), sum(d["used_qty"])/len(d["used_qty"]))
+
+    # order = list(set(data["fill_qty"]))
+    # order.sort()
+    # # order = [str(x) for x in order]
+    # title = "Total_Usage_By_Surgeries_Labels[item_id={0}]]".format(item_id)
+    # analytics.metrics_barchart(data,
+    #                            TotalUsedQtyMetric(),
+    #                            "fill_qty",
+    #                            title=title,
+    #                            save_dir="filled_qty_as_label",
+    #                            order=order)
+
+max_label = max(len(summary[item_id].keys()) for item_id in item_ids)
+with open("item_id_label_summary.csv", "w") as f:
+    headers = ["item_id"]
+    for label in range(max_label):
+        headers.extend(["label_{0}_total_usage".format(str(label)),
+                        "label_{0}_total_surgeries".format(str(label)),
+                        "label_{0}_average_usage".format(str(label))])
+    f.write(",".join(headers))
+    f.write("\n")
+
+    for item_id in item_ids:
+        line = [item_id]
+        for label in range(max_label):
+            label = float(label)
+            line.extend(summary[item_id][label] if label in summary[item_id] else ("na", "na", "na"))
+        f.write(",".join(str(x) for x in line))
+        f.write("\n")
