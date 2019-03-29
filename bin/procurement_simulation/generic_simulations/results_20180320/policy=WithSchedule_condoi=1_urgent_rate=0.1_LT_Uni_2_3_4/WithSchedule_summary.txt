@@ -1,0 +1,2 @@
+trial	average_inventory	stockouts_per_10000
+0	10.4884	633

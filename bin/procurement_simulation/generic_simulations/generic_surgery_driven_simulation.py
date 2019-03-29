@@ -18,6 +18,11 @@ lead_times = {
     "LT_DiscreteD": GenerateFromSample(80*[2] + 5*[3] + 10*[4] + [5, 6, 7, 8, 9])
 }
 
+lead_times = {
+    "LT_Uni_2_3_4": GenerateFromSample([2, 3, 4]),
+    "LT_DiscreteD": GenerateFromSample(80*[2] + 5*[3] + 10*[4] + [5, 6, 7, 8, 9])
+}
+
 for urgent_ratio in [0.1, 0.25, 0.5, 0.75, 1]:
     for lead_time_config in lead_times:
         lead_time_rng = lead_times[lead_time_config]
