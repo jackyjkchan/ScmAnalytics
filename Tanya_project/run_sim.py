@@ -1,0 +1,290 @@
+import simpy
+from rng_classes import GenerateDeterministic
+from order_policies import *
+from hospital import Hospital
+import random
+from collections import namedtuple
+import numpy as np
+
+RANDOM_SEED = 0
+SIM_TIME = 30
+
+item_sim_config_fields = ["item_ids",
+                          "ordering_policies",
+                          "item_delivery_times",
+                          "initial_inventory",
+                          "outstanding_orders",
+                          "item_stochastic_demands"]
+
+Item_Sim_Config = namedtuple('Item_Sim_Config', item_sim_config_fields)
+
+stochastic_surgery_sim_config_fields = ["item_ids",
+                                        "surgeries",
+                                        "ordering_policies",
+                                        "item_delivery_times",
+                                        "initial_inventory",
+                                        "outstanding_orders",
+                                        "surgery_item_usage",
+                                        "surgery_stochastic_demand",
+                                        "item_stochastic_demands"]
+
+Stochastic_Surgery_Config = namedtuple('Stochastic_Surgery_Config', stochastic_surgery_sim_config_fields)
+
+booked_surgery_sim_config_fields = ["item_ids",
+                                    "surgeries",
+                                    "ordering_policies",
+                                    "item_delivery_times",
+                                    "initial_inventory",
+                                    "outstanding_orders",
+                                    "surgery_item_usage",
+                                    "surgery_stochastic_demand",
+                                    "surgery_booked_demand",
+                                    "item_stochastic_demands"]
+
+Booked_Surgery_Config = namedtuple('Booked_Surgery_Config', booked_surgery_sim_config_fields)
+
+
+class RandVars:
+
+    def __init__(self, elect_surgeries, emerg_surgeries, horizon):
+        self.elect = elect_surgeries
+        self.emerg = emerg_surgeries
+        self.horizon = horizon
+        self.realized_demand_vars = []
+        self.received_demand_vars = []
+        self.elect_surgeries_vars = []
+        self.emerg_surgeries_vars = []
+        self.items_per_surgery_vars = []
+        self.leadtime_vars = []
+        self.elect_means = []
+        self.emerg_means = []
+        self.demand_mean = 0
+        self.lead_mean = 0
+
+    def set_means(self, electmean, emergmean, demandmean, leadmean):
+        self.elect_means = electmean
+        self.emerg_means = emergmean
+        self.demand_mean = demandmean
+        self.lead_mean = leadmean
+
+    def gen_random_vars(self):
+        for i in range(0, self.horizon):
+            electrow = []
+            emergrow = []
+            for j in range(0, self.elect):
+                electrow.append()
+            self.elect_surgeries_vars.append(electrow)
+            for j in range(0, self.emerg):
+                emergrow.append()
+            self.emerg_surgeries_vars.append(emergrow)
+            self.realized_demand_vars.append()
+            self.received_demand_vars.append()
+            self.leadtime_vars.append()
+
+    def gen_item_required_per_surgery(self):
+        for row in self.elect_surgeries_vars:
+            itemperday = []
+            for item in row:
+                itempersurgery = []
+                for i in range(0, item):
+                    itempersurgery.append()
+                itemperday.append(itempersurgery)
+            self.items_per_surgery_vars.append(itemperday)
+
+
+def run_item_driven_simulation(config, SIM_TIME=10000, WARMUP=500, show=False):
+    item_ids = config.item_ids
+    ordering_policies = config.ordering_policies
+    item_delivery_times = config.item_delivery_times
+    initial_inventory = config.initial_inventory
+    outstanding_orders = config.outstanding_orders
+    item_stochastic_demands = config.item_stochastic_demands
+
+    random.seed(RANDOM_SEED)
+    hospital = Hospital(item_ids,
+                        ordering_policies,
+                        item_delivery_times,
+                        item_stochastic_demands,
+                        initial_inventory,
+                        outstanding_orders
+                        )
+
+    env = simpy.Environment()
+    # env.process(receive_order(env, hospital))
+    # env.process(item_demand(env, item_stochastic_demands, hospital))
+    # env.process(place_order(env, ordering_policies, item_delivery_times, hospital))
+    # env.process(hospital_bookkeeping(env, hospital))
+    env.run(until=SIM_TIME)
+    # print(env.now)
+    # print(len(hospital.historical_inventory_levels["item1"]))
+    # print("historical inventory levels")
+    # print(hospital.historical_inventory_levels)
+    # print("Item stock out events")
+    # pprint(hospital.stockouts)
+    # print("order history")
+    # print(hospital.historical_orders)
+    if show:
+        print("Average Inventory Level")
+        for item_id in item_ids:
+            print("{0}: {1}".format(item_id, str(np.mean(hospital.historical_inventory_levels[item_id]))))
+
+    return hospital
+
+
+def run_stochastic_surgery_driven_simulation(config, SIM_TIME=100000, WARMUP=500, show=False):
+    item_ids = config.item_ids
+    ordering_policies = config.ordering_policies
+    item_delivery_times = config.item_delivery_times
+    initial_inventory = config.initial_inventory
+    outstanding_orders = config.outstanding_orders
+
+    random.seed(RANDOM_SEED)
+    env = simpy.Environment()
+    hospital = Hospital(item_ids,
+                        ordering_policies,
+                        item_delivery_times,
+                        {},
+                        initial_inventory,
+                        outstanding_orders,
+                        surgeries=config.surgeries)
+    hospital.set_surgery_item_usage(config.surgery_item_usage)
+    hospital.set_surgery_stochastic_demand(config.surgery_stochastic_demand)
+    hospital.set_sim_time(SIM_TIME)
+    env = simpy.Environment()
+    # env.process(receive_order(env, hospital))
+    # env.process(item_demand_from_surgeries(env, hospital))
+    # env.process(place_order(env, ordering_policies, item_delivery_times, hospital))
+    # env.process(hospital_bookkeeping(env, hospital))
+    env.run(until=SIM_TIME)
+    hospital.clean_data(WARMUP)
+    if show:
+        print("Average Inventory Level")
+        for item_id in item_ids:
+            print("{0}: {1}".format(item_id, str(np.mean(hospital.historical_inventory_levels[item_id]))))
+        for item in hospital.stockouts:
+            print("{0}: {1}".format(item, len(hospital.stockouts[item])))
+        print(hospital.stockouts)
+    return hospital
+
+
+def run_booked_surgery_driven_simulation(config, SIM_TIME=100000, WARMUP=500, show=False):
+    item_ids = config.item_ids
+    ordering_policies = config.ordering_policies
+    item_delivery_times = config.item_delivery_times
+    initial_inventory = config.initial_inventory
+    outstanding_orders = config.outstanding_orders
+
+    random.seed(RANDOM_SEED)
+    env = simpy.Environment()
+    hospital = Hospital(item_ids,
+                        ordering_policies,
+                        item_delivery_times,
+                        {},
+                        initial_inventory,
+                        outstanding_orders,
+                        surgeries=config.surgeries)
+    hospital.set_surgery_item_usage(config.surgery_item_usage)
+    hospital.set_surgery_stochastic_demand(config.surgery_stochastic_demand)
+    hospital.set_booked_surgery_stochastic_demand(config.surgery_booked_demand)
+    hospital.set_sim_time(SIM_TIME)
+    # env.process(receive_order(env, hospital))
+    # env.process(item_demand_from_surgeries(env, hospital))
+    # env.process(book_surgeries(env, hospital))
+    # env.process(place_order(env, ordering_policies, item_delivery_times, hospital))
+    # env.process(hospital_bookkeeping(env, hospital))
+    env.run(until=SIM_TIME)
+    hospital.clean_data(WARMUP)
+    if show:
+        print("Average Inventory Level")
+        for item_id in item_ids:
+            print("{0}: {1}".format(item_id, str(np.mean(hospital.historical_inventory_levels[item_id]))))
+        for item in hospital.stockouts:
+            print("{0}: {1}".format(item, len(hospital.stockouts[item])))
+        print(hospital.stockouts)
+    return hospital
+
+
+if __name__ == "__main__":
+
+    if False:
+        """ Item Driven Simulation test"""
+        for k in [5, 10, 15]:
+            for l in [2, 3, 4]:
+                condoi_level = k
+                lead_time = l
+                demand = 1
+                config = Item_Sim_Config(
+                    item_ids=["item1"],
+                    ordering_policies={"item1": DeterministicConDOIPolicyV2("item1", constant_days=condoi_level)},
+                    item_delivery_times={"item1": GenerateDeterministic(lead_time)},
+                    initial_inventory={"item1": 0},
+                    outstanding_orders={"item1": set()},
+                    item_stochastic_demands={"item1": GenerateDeterministic(demand)}
+                )
+                print("=================== START REPORT===================")
+                print("conDOI Level:", condoi_level)
+                print("lead time:", lead_time)
+                print("demand:", demand)
+                run_item_driven_simulation(config, show=True)
+                print("======================== END ========================")
+
+
+    if False:
+        """ Stochastic Surgery Driven Simulation test"""
+        condoi_level = 5
+        lead_time = 2
+        config = Stochastic_Surgery_Config(
+            item_ids=["item1"],
+            surgeries=["surgery1", "surgery2", "surgery3"],
+            ordering_policies={"item1": DeterministicConDOIPolicyV2("item1", constant_days=condoi_level)},
+            item_delivery_times={"item1": GenerateDeterministic(lead_time)},
+            initial_inventory={"item1": 0},
+            outstanding_orders={"item1": set()},
+            surgery_item_usage={"surgery1": {"item1": GenerateDeterministic(1)},
+                                "surgery2": {"item1": GenerateDeterministic(2)},
+                                "surgery3": {"item1": GenerateDeterministic(3)}
+                                },
+            surgery_stochastic_demand={"surgery1": GenerateDeterministic(3),
+                                       "surgery2": GenerateDeterministic(2),
+                                       "surgery3": GenerateDeterministic(1)
+                                       },
+            item_stochastic_demands={"item1": GenerateDeterministic(0)}
+        )
+
+        print("=================== START REPORT===================")
+        print("conDOI Level:", condoi_level)
+        print("lead time:", lead_time)
+        run_stochastic_surgery_driven_simulation(config, show=True)
+        print("======================== END ========================")
+
+    if True:
+        """ Booked Surgery Driven Simulation test"""
+        condoi_level = 5
+        lead_time = 2
+        config = Booked_Surgery_Config(
+            item_ids=["item1"],
+            surgeries=["surgery1", "surgery2", "surgery3"],
+            ordering_policies={"item1": DeterministicConDOIPolicyV2("item1", constant_days=condoi_level)},
+            item_delivery_times={"item1": GenerateDeterministic(lead_time)},
+            initial_inventory={"item1": 0},
+            outstanding_orders={"item1": set()},
+            surgery_item_usage={"surgery1": {"item1": GenerateDeterministic(1)},
+                                "surgery2": {"item1": GenerateDeterministic(2)},
+                                "surgery3": {"item1": GenerateDeterministic(3)}
+                                },
+            surgery_stochastic_demand={"surgery1": GenerateDeterministic(3),
+                                       "surgery2": GenerateDeterministic(2),
+                                       "surgery3": GenerateDeterministic(1)
+                                       },
+            surgery_booked_demand={"surgery1": GenerateDeterministic(2),
+                                   "surgery2": GenerateDeterministic(1),
+                                   "surgery3": GenerateDeterministic(3)
+                                   },
+            item_stochastic_demands={"item1": GenerateDeterministic(0)}
+        )
+
+        print("=================== START REPORT===================")
+        print("conDOI Level:", condoi_level)
+        print("lead time:", lead_time)
+        run_booked_surgery_driven_simulation(config, show=True)
+        print("======================== END ========================")
