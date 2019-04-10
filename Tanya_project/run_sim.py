@@ -45,7 +45,6 @@ Booked_Surgery_Config = namedtuple('Booked_Surgery_Config', booked_surgery_sim_c
 
 
 def run_pout_sim(config1, booking_lead_time,  simtime=10000, warmup=500, show=False):
-
     random.seed(RANDOM_SEED)
     hospital = Hospital2(config1.item_ids,
                          config1.ordering_policies,
@@ -61,6 +60,8 @@ def run_pout_sim(config1, booking_lead_time,  simtime=10000, warmup=500, show=Fa
     hospital.clean_data(warmup)
     hospital.setrandomvars(simtime)
     for i in range(0, simtime):
+        if i == simtime - warmup:
+            break
         for item in hospital.item_ids:
             # Receive order
             hospital.inventory[item] += hospital.historical_deliveries[item][i]
@@ -88,7 +89,7 @@ def run_pout_sim(config1, booking_lead_time,  simtime=10000, warmup=500, show=Fa
             hospital.historical_inventory_levels[item][i] += hospital.inventory[item]
     if show:
         print("Average Inventory Level")
-        for item_id in config.item_ids:
+        for item_id in config1.item_ids:
             print("{0}: {1}".format(item_id, str(np.mean(hospital.historical_inventory_levels[item_id]))))
         for item in hospital.stockouts:
             print("{0}: {1}".format(item, len(hospital.stockouts[item])))

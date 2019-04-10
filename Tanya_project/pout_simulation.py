@@ -9,7 +9,7 @@ from run_sim import run_pout_sim, Booked_Surgery_Config
 from scm_analytics import ScmAnalytics
 from scm_analytics import config as baseconfig
 
-levels = [1, 2, 3, 5, 7, 10, 15, 20]
+levels = [20, 40, 100]
 
 lead_times = {
     "LT_Uni_2_3_4": GenerateFromSample([2, 3, 4]),
@@ -64,7 +64,7 @@ for urgent_ratio in [0.1, 0.25, 0.5, 0.75, 1]:
                         surgeries=surgeries,
                         ordering_policies={item_id: policies[policy]},
                         item_delivery_times=item_delivery_times,
-                        initial_inventory={item_id: 0},
+                        initial_inventory={item_id: out_lvl},
                         outstanding_orders={item_id: set()},
                         surgery_item_usage=surgery_item_usage,
                         surgery_stochastic_demand=surgery_stochastic_demand,
