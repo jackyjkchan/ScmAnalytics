@@ -37,8 +37,8 @@ class GenerateDeterministic(NumberGenerator):
 
 
 class GenerateFromNormal(NumberGenerator):
-    def __init__(self, mean, std):
-        self.mean = mean
+    def __init__(self, mean1, std):
+        self.mean = mean1
         self.std = std
 
     def gen(self):
@@ -48,7 +48,7 @@ class GenerateFromNormal(NumberGenerator):
         return self.mean
 
     def sample(self, n):
-        return [self.gen() for i in range(n)]
+        return [self.gen() for _ in range(n)]
 
 
 class GenerateFromPositiveNormal(NumberGenerator):
@@ -67,12 +67,12 @@ class GenerateFromPositiveNormal(NumberGenerator):
         return self.mean
 
     def sample(self, n):
-        return [self.gen() for i in range(n)]
+        return [self.gen() for _ in range(n)]
 
 
 class GenerateFromLogNormal(NumberGenerator):
     def __init__(self, mu, sigma):
-        self.mu = mean
+        self.mu = mu
         self.sigma = sigma
 
     def gen(self):
@@ -82,7 +82,7 @@ class GenerateFromLogNormal(NumberGenerator):
         return math.exp(self.mu + self.sigma**2/2)
 
     def sample(self, n):
-        return [self.gen() for i in range(n)]
+        return [self.gen() for _ in range(n)]
 
 
 class GenerateFromScaledLogNormal(NumberGenerator):
@@ -99,4 +99,4 @@ class GenerateFromScaledLogNormal(NumberGenerator):
         return self.c * math.exp(self.mu + self.sigma**2/2)
 
     def sample(self, n):
-        return [self.gen() for i in range(n)]
+        return [self.gen() for _ in range(n)]

@@ -2,35 +2,71 @@ import numpy as np
 
 
 class OrderPolicy:
-    def action(self, hospital):
+    def action(self, env, hospital):
         return 0
 
 
-class DeterministicConDOIPolicy(OrderPolicy):
+class POUTPolicy(OrderPolicy):
 
-    def __init__(self, item_id, constant_days=5):
+    def __init__(self, item_id, beta, level):
         self.item_id = item_id
-        self.constant_days = constant_days
+        self.level = level
+        self.beta = beta
 
-    def action(self, env, hospital):
+    def action(self, currenttime, hospital):
         expected_demand = 0
+        k = hospital.item_lead_times[self.item_id]
         if self.item_id in hospital.item_stochastic_demands:
             expected_demand += hospital.item_stochastic_demands[self.item_id].mean()
         for surgery in hospital.surgeries:
-            if self.item_id in hospital.surgery_item_usage[surgery]:
-                expected_surgeries = hospital.surgery_stochastic_demand[surgery].mean()
-                expected_item_usage = hospital.surgery_item_usage[surgery][self.item_id]
-                expected_demand += expected_surgeries * expected_item_usage
+            expected_surgeries = hospital.surgery_stochastic_demand[surgery].mean()
+            if len(hospital.surgery_schedule[surgery]) > currenttime + round(int(k)):
+                expected_surgeries += np.mean(hospital.surgery_schedule[surgery][currenttime:currenttime + round(int(k))])
+            else:
+                expected_surgeries += np.mean(hospital.surgery_schedule[surgery][currenttime:])
+            if self.item_id in hospital.sugery_item_usage[surgery]:
+                expected_item_usage = hospital.surgery_item_usage[surgery][self.item_id].mean()
+                expected_demand += expected_item_usage * expected_surgeries
+        receipt = hospital.historical_deliveries[self.item_id][currenttime]
+        inv = hospital.historical_inventory_levels[self.item_id][currenttime - 1] + receipt - expected_demand
+        wip = 0
+        if currenttime > 0:
+            if currenttime - k >= 0:
+                wip = np.mean(hospital.historical_orders[self.item_id][currenttime - k:currenttime - 1])
+            else:
+                wip = np.mean(hospital.historical_orders[self.item_id][:currenttime - 1])
+        orderqty = expected_demand + self.beta * (self.level + expected_demand * k - (inv + wip))
+        return max(0, orderqty)
 
-        delivery_time = hospital.order_lead_times[self.item_id].mean()
-        order_up_level = int(expected_item_usage * delivery_time * self.constant_days)
-        outstanding_orders = sum(hospital.historical_deliveries[self.item_id][env.now + 1:]) \
-            if len(hospital.historical_deliveries[self.item_id]) > (env.now + 1) \
-            else 0
 
-        qty = order_up_level - hospital.inventory[self.item_id] - outstanding_orders
+class POUTPolicyWithoutSchedule(OrderPolicy):
 
-        return max(0, qty)
+    def __init__(self, item_id, beta, level):
+        self.item_id = item_id
+        self.level = level
+        self.beta = beta
+
+    def action(self, currenttime, hospital):
+        expected_demand = 0
+        k = hospital.item_lead_times[self.item_id]
+        if self.item_id in hospital.item_stochastic_demands:
+            expected_demand += hospital.item_stochastic_demands[self.item_id].mean()
+        for surgery in hospital.surgeries:
+            expected_surgeries = hospital.surgery_stochastic_demand[surgery].mean()
+            expected_surgeries += hospital.booked_surgery_stochastic_demand[surgery].mean()
+            if self.item_id in hospital.sugery_item_usage[surgery]:
+                expected_item_usage = hospital.surgery_item_usage[surgery][self.item_id].mean()
+                expected_demand += expected_item_usage * expected_surgeries
+        receipt = hospital.historical_deliveries[self.item_id][currenttime]
+        inv = hospital.historical_inventory_levels[self.item_id][currenttime - 1] + receipt - expected_demand
+        wip = 0
+        if currenttime > 0:
+            if currenttime - k >= 0:
+                wip = np.mean(hospital.historical_orders[self.item_id][currenttime - k:currenttime - 1])
+            else:
+                wip = np.mean(hospital.historical_orders[self.item_id][:currenttime - 1])
+        orderqty = expected_demand + self.beta * (self.level + expected_demand * k - (inv + wip))
+        return max(0, orderqty)
 
 
 class DeterministicConDOIPolicyV2(OrderPolicy):
@@ -54,20 +90,16 @@ class DeterministicConDOIPolicyV2(OrderPolicy):
             if self.item_id in hospital.surgery_item_usage[surgery]:
                 expected_item_usage = hospital.surgery_item_usage[surgery][self.item_id].mean()
                 expected_demand += expected_surgeries * expected_item_usage
-
         order_up_level = int((k + delivery_time) * expected_demand)
         outstanding_orders = sum(hospital.historical_deliveries[self.item_id][env.now + 1:]) \
             if len(hospital.historical_deliveries[self.item_id]) > (env.now + 1) \
             else 0
-
         qty = order_up_level - hospital.inventory[self.item_id] - outstanding_orders
         return max(0, qty)
 
 
 class DeterministicConDOIPolicyV2WithoutSchedule(OrderPolicy):
-    """ This version of the conDOI policy does not have access to the actual surgery schedule and will only rely on
-        the expected value of surgery demand.
-    """
+
     def __init__(self, item_id, constant_days=5):
         self.item_id = item_id
         self.constant_days = constant_days
@@ -84,11 +116,9 @@ class DeterministicConDOIPolicyV2WithoutSchedule(OrderPolicy):
             if self.item_id in hospital.surgery_item_usage[surgery]:
                 expected_item_usage = hospital.surgery_item_usage[surgery][self.item_id].mean()
                 expected_demand += expected_surgeries * expected_item_usage
-
         order_up_level = int((k + delivery_time) * expected_demand)
         outstanding_orders = sum(hospital.historical_deliveries[self.item_id][env.now + 1:]) \
             if len(hospital.historical_deliveries[self.item_id]) > (env.now + 1)             \
             else 0
-
         qty = order_up_level - hospital.inventory[self.item_id] - outstanding_orders
         return max(0, qty)
