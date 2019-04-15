@@ -1,0 +1,4 @@
+,pref_card,case_cart_id
+0,frozenset({'85321'}),6891
+1,frozenset({'28441'}),379
+2,"frozenset({'85321', '28441'})",1462
