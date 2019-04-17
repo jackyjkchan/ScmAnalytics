@@ -138,7 +138,9 @@ def lhs_etl_routine():
 
     # add scheduled procedures to case_cart
     case_cart_df = case_cart_df.join(surgery_df[["event_id",
-                                                 "scheduled_procedures"]].set_index("event_id"),
+                                                 "scheduled_procedures",
+                                                 "case_service"
+                                                 ]].set_index("event_id"),
                                      on="event_id",
                                      how="left",
                                      rsuffix="surgery")
