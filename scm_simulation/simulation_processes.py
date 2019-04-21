@@ -144,7 +144,7 @@ def place_order(env, ordering_policies, item_delivery_times, hospital):
     while True:
         yield env.timeout(1)
         for item_id in hospital.item_ids:
-            order_qty = ordering_policies[item_id].action(env, hospital)
+            order_qty = ordering_policies[item_id].action(env.now, hospital)
             hospital.orders[item_id].add((env.now, order_qty))
             hospital.historical_orders[item_id][env.now] += order_qty
             delivery_time = item_delivery_times[item_id].gen()

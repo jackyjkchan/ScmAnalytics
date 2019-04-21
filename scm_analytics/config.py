@@ -3,6 +3,7 @@ from os import path
 class LHS:
 
     def __init__(self):
+        self.project_root = '/Users/tanyatang/Documents/Homework/Graduate University/MIE1613H/Project'
         self.project_root = 'C:\\Users\Jacky\Google Drive\MASc\workspace\inventory_supplychain_model'
         self.cache_root = path.join(self.project_root, "cache")
         self.raw_path = path.join(self.cache_root, "lhs_raw")

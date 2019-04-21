@@ -1,0 +1,1 @@
+trial	average_inventory	stockouts_per_10000
