@@ -20,8 +20,14 @@ class GenerateFromSample(NumberGenerator):
     def gen(self):
         return random.choice(self.samples)
 
+    def gen_n(self, n):
+        return random.choice(self.samples, n)
+
     def mean(self):
         return self.average
+
+    def sample(self, n):
+        return self.gen_n(n)
 
 
 class GenerateDeterministic(NumberGenerator):
@@ -31,6 +37,9 @@ class GenerateDeterministic(NumberGenerator):
 
     def gen(self):
         return self.value
+
+    def gen_n(self, n):
+        return [self.value]*n
 
     def mean(self):
         return self.value
@@ -78,6 +87,12 @@ class GenerateFromLogNormal(NumberGenerator):
     def gen(self):
         return random.lognormal(self.mu, self.sigma)
 
+    def gen_n(self, n, discrete=True):
+        if discrete:
+            return list(int(x) for x in random.lognormal(self.mu, self.sigma, n))
+        else:
+            return random.lognormal(self.mu, self.sigma, n)
+
     def mean(self):
         return math.exp(self.mu + self.sigma**2/2)
 
@@ -94,6 +109,9 @@ class GenerateFromScaledLogNormal(NumberGenerator):
 
     def gen(self):
         return self.c * random.lognormal(self.mu, self.sigma)
+
+    def gen_n(self, n):
+        return self.c * random.lognormal(self.mu, self.sigma, n)
 
     def mean(self):
         return self.c * math.exp(self.mu + self.sigma**2/2)

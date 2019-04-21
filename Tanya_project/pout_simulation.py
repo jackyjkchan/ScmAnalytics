@@ -1,39 +1,52 @@
 from numpy import mean, std
 import matplotlib.pyplot as plt
 from os import path, makedirs
+import datetime
 
 from rng_classes import GenerateFromSample, GenerateDeterministic, GenerateFromScaledLogNormal
-from order_policies import POUTPolicy, POUTPolicyWithoutSchedule
+from order_policies import POUTPolicy, POUTPolicyWithoutSchedule, DeterministicConDOIPolicyV2, DeterministicConDOIPolicyV2WithoutSchedule
 from run_sim import run_pout_sim, Booked_Surgery_Config
 
 from scm_analytics import ScmAnalytics
 from scm_analytics import config as baseconfig
 
-levels = [20, 40, 100]
+levels = [10, 15, 20, 25, 30, 40, 100]
 
 lead_times = {
-    "LT_Uni_2_3_4": GenerateFromSample([2, 3, 4]),
-    "LT_DiscreteD": GenerateFromSample(80*[2] + 5*[3] + 10*[4] + [5, 6, 7, 8, 9])}
+    "LT_D3": GenerateDeterministic(3),
+    "LT_Uni_2_3_4": GenerateFromSample([2, 3, 4])#,
+    #"LT_DiscreteD": GenerateFromSample(80*[2] + 5*[3] + 10*[4] + [5, 6, 7, 8, 9])
+    }
 
 base_dir = "results_20190409"
 
 beta = 0.8
 
-for urgent_ratio in [0.1, 0.25, 0.5, 0.75, 1]:
+for urgent_ratio in [0.1]:#[0.1, 0.25, 0.5, 0.75, 1]:
     for lead_time_config in lead_times:
         lead_time_rng = lead_times[lead_time_config]
 
-        average_stockouts = {"WithSchedule": [],
-                             "WithoutSchedules": []}
-        std_stockouts = {"WithSchedule": [],
-                         "WithoutSchedules": []}
+        average_stockouts = {"PoutWithSchedule": [],
+                             "PoutWithoutSchedules": [],
+                             "ConDOIWithSchedule": [],
+                             "ConDOIWithoutSchedule": []}
 
-        average_inventory = {"WithSchedule": [],
-                             "WithoutSchedules": []}
+        std_stockouts = {"PoutWithSchedule": [],
+                         "PoutWithoutSchedules": [],
+                         "ConDOIWithSchedule": [],
+                         "ConDOIWithoutSchedule": []}
+
+        average_inventory = {"PoutWithSchedule": [],
+                             "PoutWithoutSchedules": [],
+                             "ConDOIWithSchedule": [],
+                             "ConDOIWithoutSchedule": []}
         for out_lvl in levels:
             item_id = "item1"
-            policies = {"WithSchedule": POUTPolicy(item_id, beta, out_lvl),
-                        "WithoutSchedules": POUTPolicyWithoutSchedule(item_id, beta, out_lvl)}
+            policies = {"PoutWithSchedule": POUTPolicy(item_id, beta, out_lvl),
+                        "PoutWithoutSchedules": POUTPolicyWithoutSchedule(item_id, beta, out_lvl),
+                        "ConDOIWithSchedule": DeterministicConDOIPolicyV2(item_id, out_lvl/10),
+                        "ConDOIWithoutSchedule": DeterministicConDOIPolicyV2WithoutSchedule(item_id, out_lvl/10)
+                        }
 
             for policy in policies:
                 results_dir = path.join(base_dir,
@@ -51,7 +64,8 @@ for urgent_ratio in [0.1, 0.25, 0.5, 0.75, 1]:
                 stockouts = []
                 inventory_levels = []
 
-                for trial in range(10):
+                for trial in range(5):
+                    start_time = datetime.datetime.now()
 
                     surgeries = ["A"]
                     surgery_item_usage = {"A":  {item_id: GenerateDeterministic(1)}}
@@ -144,25 +158,40 @@ for urgent_ratio in [0.1, 0.25, 0.5, 0.75, 1]:
                     stockouts.append(len(hospital.stockouts[item_id]))
                     inventory_levels.append(mean(hospital.historical_inventory_levels[item_id]))
 
+                    end_time = datetime.datetime.now()
+                    print("Sim Time:{0}".format(str(end_time - start_time)))
+
                 average_stockouts[policy].append(mean(stockouts))
                 std_stockouts[policy].append(std(stockouts))
                 average_inventory[policy].append(mean(inventory_levels))
+
+
 
         results_dir = path.join(base_dir, "SUMMARY_urgent_rate={0}".format(urgent_ratio))
         if not path.exists(results_dir):
             makedirs(results_dir)
 
         plt.figure(figsize=(16, 8))
-        plt.errorbar(average_inventory["WithSchedule"],
-                     average_stockouts["WithSchedule"],
+        plt.errorbar(average_inventory["PoutWithSchedule"],
+                     average_stockouts["PoutWithSchedule"],
                      fmt="x-",
-                     yerr=std_stockouts["WithSchedule"],
-                     label="WithSchedule")
-        plt.errorbar(average_inventory["WithoutSchedules"],
-                     average_stockouts["WithoutSchedules"],
+                     yerr=std_stockouts["PoutWithSchedule"],
+                     label="PoutWithSchedule")
+        plt.errorbar(average_inventory["PoutWithoutSchedules"],
+                     average_stockouts["PoutWithoutSchedules"],
                      fmt="o-",
-                     yerr=std_stockouts["WithoutSchedules"],
-                     label="WithoutSchedules")
+                     yerr=std_stockouts["PoutWithoutSchedules"],
+                     label="PoutWithoutSchedules")
+        plt.errorbar(average_inventory["ConDOIWithSchedule"],
+                     average_stockouts["ConDOIWithSchedule"],
+                     fmt=".-",
+                     yerr=std_stockouts["ConDOIWithSchedule"],
+                     label="ConDOIWithSchedule")
+        plt.errorbar(average_inventory["ConDOIWithoutSchedule"],
+                     average_stockouts["ConDOIWithoutSchedule"],
+                     fmt="--",
+                     yerr=std_stockouts["ConDOIWithoutSchedule"],
+                     label="ConDOIWithoutSchedule")
         plt.title("Stockouts (std) vs Inventory Level urgent ratio = {0} {1} trials=10 sim=10k days".format(
             urgent_ratio,
             lead_time_config))

@@ -57,11 +57,8 @@ def run_pout_sim(config1, booking_lead_time,  simtime=10000, warmup=500, show=Fa
     hospital.set_surgery_stochastic_demand(config1.surgery_stochastic_demand)
     hospital.set_booked_surgery_stochastic_demand(config1.surgery_booked_demand)
     hospital.set_sim_time(simtime)
-    hospital.clean_data(warmup)
     hospital.setrandomvars(simtime)
     for i in range(0, simtime):
-        if i == simtime - warmup:
-            break
         for item in hospital.item_ids:
             # Receive order
             hospital.inventory[item] += hospital.historical_deliveries[item][i]
@@ -87,6 +84,7 @@ def run_pout_sim(config1, booking_lead_time,  simtime=10000, warmup=500, show=Fa
                 hospital.historical_deliveries[item][i + delivery_time] += order_qty
             # Hospital bookkeeping
             hospital.historical_inventory_levels[item][i] += hospital.inventory[item]
+    hospital.clean_data(warmup)
     if show:
         print("Average Inventory Level")
         for item_id in config1.item_ids:
