@@ -37,10 +37,10 @@ if __name__ == "__main__":
 
 
         preference_card_df = preference_card_df.groupby(["pref_card"]).agg({
-                'case_cart_id': 'nunique'
+                'case_cart_id': ['nunique', 'min']
         }).reset_index()
 
-        preference_card_df.to_csv("preference_card_vw_(id).csv")
+        preference_card_df.to_csv("preference_card_{0}_(id).csv".format(case_service.replace("/", " ")))
 
         data = list(preference_card_df["case_cart_id"])
         title = "'Pref Card (item_id)' Usage Distribution (case_service = {0})".format(case_service.replace("/", " "))

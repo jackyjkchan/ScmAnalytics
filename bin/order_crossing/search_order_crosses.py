@@ -4,7 +4,6 @@ analytics = ScmAnalytics.ScmAnalytics(config.LHS())
 
 po_df = analytics.po.df
 
-
 item_id = "114970"
 df = po_df[po_df["item_id"]==item_id]
 df = df.sort_values(["order_date"])

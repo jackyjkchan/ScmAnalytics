@@ -35,6 +35,7 @@ def lhs_etl_routine():
         "QTY_RCV_TO_DATE":  "qty_received"
     }
     po_df = po_df.rename(columns=po_rename)
+    po_df["stock_status"] = False
 
     hmms_po_df["REQ_DATE"] = pd.to_datetime(hmms_po_df["REQ_DATE"])
     #hmms_po_df["LAST_RCV_DATE"] = pd.to_datetime(po_df["LAST_RCV_DATE"])
@@ -55,6 +56,8 @@ def lhs_etl_routine():
     hmms_po_df = hmms_po_df.rename(columns=hmms_po_rename)
     hmms_po_df["delivery_date"] = hmms_po_df["order_date"]
     hmms_po_df["item_id"] = hmms_po_df["item_id"].astype(str)
+    hmms_po_df["stock_status"] = True
+
     po_df = pd.concat([po_df, hmms_po_df])[["po_id",
                                             "item_id",
                                             "qty",
@@ -62,7 +65,9 @@ def lhs_etl_routine():
                                             "delivery_date",
                                             "po_class",
                                             "unit_of_measure",
-                                            "unit_price"]]
+                                            "unit_price",
+                                            "stock_status"]]
+
 
     surgery_rename = {
         "SchEventId":                           "event_id",
