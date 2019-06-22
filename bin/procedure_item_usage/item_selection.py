@@ -35,15 +35,18 @@ usage_df = usage_df[usage_df["item_id"].isin(common_items)]
 po_summary_df = po_summary_df[po_summary_df["item_id"].isin(common_items)]
 
 item_used_lkup = usage_df.groupby(["item_id", "case_service"]).agg({"used_qty": "sum",
-                                                    "code_name": "max",
-                                                    "unit_price": "max"}).reset_index()
+                                                                    "code_name": "max",
+                                                                    "unit_price": "max"}).reset_index()
 
 item_used_df = item_used_lkup.pivot(index="item_id", columns="case_service", values='used_qty')\
                                .fillna(0)\
                                .reset_index()
+item_used_df["total_used_qty"] = item_used_df[[c for c in case_services]].sum(axis=1)
+for c in case_services:
+    item_used_df[c] = item_used_df[c] / item_used_df["total_used_qty"]
 
-item_info_lkup = item_used_lkup = usage_df.groupby(["item_id"]).agg({"code_name": "max",
-                                                                     "unit_price": "max"}).reset_index()
+item_info_lkup = usage_df.groupby(["item_id"]).agg({"code_name": "max",
+                                                    "unit_price": "max"}).reset_index()
 
 item_used_df = item_used_df.join(item_info_lkup.set_index(["item_id"]),
                                    on="item_id",
@@ -53,10 +56,7 @@ item_used_df = item_used_df.join(po_summary_df.set_index("item_id"),
                                  on="item_id",
                                  how="left",
                                  rsuffix="po")
-item_used_df["total_used_qty"] = item_used_df[[c for c in case_services]].sum(axis=1)
 
-for c in case_services:
-    item_used_df[c] = item_used_df[c] / item_used_df["total_used_qty"]
 
 item_used_df["used_ordered_ratio"] = item_used_df["total_used_qty"] / item_used_df["ordered_qty"]
 

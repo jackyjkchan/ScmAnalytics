@@ -85,6 +85,11 @@ def lhs_etl_routine():
     }
     surgery_df = surgery_df.rename(columns=surgery_rename)
     surgery_df["event_id"] = surgery_df["event_id"].values.astype(np.int64).astype(str)
+    surgery_df = surgery_df[surgery_df["scheduled_procedures"].notna()]
+    surgery_df["procedures"] = surgery_df["scheduled_procedures"].apply(lambda val:
+                                                                       set([p.strip().lower() for p in
+                                                                            val.split(",")])
+                                                                       )
 
     case_cart_rename = {
         "SchEventId":   "event_id",

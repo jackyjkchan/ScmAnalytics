@@ -60,6 +60,7 @@ case_service = "Cardiac Surgery"
 item_id = "38242"
 thres = 0.15
 occurrence_thres = 15
+add_interactions = True
 
 analytics = ScmAnalytics.ScmAnalytics(config.LHS())
 
@@ -78,6 +79,8 @@ surgery_df["procedures_set"] = surgery_df["scheduled_procedures"].apply(lambda v
                                                                         )
 
 surgery_df["procedures_count"] = surgery_df["procedures_set"].apply(lambda v: len(v))
+#surgery_df["procedures_set"] = surgery_df["procedures_set"].apply(lambda s: s.union(set(["CONSTANT"])))
+
 procedure_df = pd.concat([Series(row['event_id'], row['procedures_set']) for _, row in surgery_df.iterrows()],
                          ).reset_index().rename(columns={"index": "procedure",
                                                          0: "event_id"})
@@ -101,7 +104,10 @@ print("Initial List of Procedures and Count of Occurences over {0:d} Surgery Sam
 print(regression_summary.to_string(index=False))
 
 #regression_summary = regression_summary[regression_summary["occurrences"] > occurrence_thres]
+
+all_procedures = set(regression_summary["procedure"])
 procedures = sorted(list(set(regression_summary[regression_summary["occurrences"] > occurrence_thres]["procedure"])))
+excluded_procedures = all_procedures - set(procedures)
 surg_regres_df["procedure_vector"] = surg_regres_df[[p for p in procedures]].values.tolist()
 
 y = surg_regres_df["used_qty"]
@@ -111,6 +117,7 @@ procedure_mean = {procedures[i]: results.params[i] for i in range(len(procedures
 
 while any(p < thres for p in results.params):
     procedures = list(filter(lambda v: procedure_mean[v] >= thres, procedures))
+    excluded_procedures = all_procedures - set(procedures)
     surg_regres_df["procedure_vector"] = surg_regres_df[[p for p in procedures]].values.tolist()
     y = surg_regres_df["used_qty"]
     x = np.array(list(surg_regres_df["procedure_vector"]))
@@ -118,11 +125,27 @@ while any(p < thres for p in results.params):
     procedure_mean = {procedures[i]: results.params[i] for i in range(len(procedures))}
 
 print(results.summary(xname=procedures))
+excluded_procedures = all_procedures - set(procedures)
+surg_regres_df["procedure_vector"] = surg_regres_df.apply(
+    lambda row: row["procedure_vector"]+[float(any(row[excluded_procedures]))],
+    axis=1
+)
+procedures.append("UNION")
+y = surg_regres_df["used_qty"]
+x = np.array(list(surg_regres_df["procedure_vector"]))
+results = sm.OLS(y, x).fit()
+procedure_mean = {procedures[i]: results.params[i] for i in range(len(procedures))}
+print(results.summary(xname=procedures))
+
 regression_summary = regression_summary[regression_summary["procedure"].isin(procedures)]
+regression_summary = regression_summary.append(pd.DataFrame({"procedure": ["UNION"], "occurrences": [0]}),
+                                               ignore_index=True,
+                                               sort=False)
 regression_summary["mean"] = list(results.params)
 # Fit the second moments by estimating E[Y^2|X]
 y_var = (surg_regres_df["used_qty"]-results.fittedvalues)**2
 res = scipy.optimize.lsq_linear(x, y_var, bounds=(0, np.inf))
+print(res)
 regression_summary["variance"] = res.x
 
 global_mean = "Global_Mean={:1.2f}".format(np.mean(y))
@@ -165,17 +188,18 @@ regression_summary["usage_dist_list"] = regression_summary.apply(
     axis=1
 )
 
+scale = 10
 procedure_usage = list(regression_summary["usage_dist_list"])
 fitted_usage_per_surgery_dist = surg_regres_df[["event_id", "procedure_vector"]]
 fitted_usage_per_surgery_dist["usage_dist_list"] = fitted_usage_per_surgery_dist.apply(
     lambda row: [
         sum(np.random.choice(procedure_usage[i])*row["procedure_vector"][i] for i in range(len(procedures)))
-        for _ in range(100)
+        for _ in range(scale)
     ],
     axis=1)
 
 plt.close()
-plt.hist([e for s in 100*[y] for e in s],  bins=list(np.arange(0,10,1)), rwidth=0.94, alpha=0.5, label="Raw Data")
+plt.hist([e for s in scale*[y] for e in s],  bins=list(np.arange(0,10,1)), rwidth=0.94, alpha=0.5, label="Raw Data")
 plt.hist([e for s in fitted_usage_per_surgery_dist["usage_dist_list"] for e in s],
          bins=list(np.arange(0,10,1)), rwidth=0.94, alpha=0.5, label="Fitted Distribution")
 plt.legend()

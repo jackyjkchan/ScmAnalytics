@@ -1,16 +1,11 @@
 import pandas as pd
-import matplotlib.pyplot as plt
 import numpy as np
-import statsmodels.api as sm
-import scipy
 
 from scm_analytics import ScmAnalytics, config
 from pandas import Series
-from pprint import pprint
 
 case_service = "Cardiac Surgery"
-item_id = "38242"
-thres = 0.05
+multi_procedure_only = True
 
 
 def phi_coeff(x1, x2):
@@ -22,19 +17,15 @@ def phi_coeff(x1, x2):
     n_0 = n00+n10
     n1_ = n10+n11
     n0_ = n01+n00
+    #return 1 if n11 > 0 else 0
     return (n11*n00-n10*n01)/(np.sqrt(n_1*n_0*n1_*n0_)) if all([n_1, n_0, n1_, n0_]) else None
 
 
 analytics = ScmAnalytics.ScmAnalytics(config.LHS())
 case_services = set(analytics.surgery.df["case_service"])
 
-for case_service in ["General Surgery", "Plastic Surgery"]:
+for case_service in [case_service]:
     print(case_service)
-    usage_df = analytics.usage.df
-    usage_df = usage_df[usage_df["item_id"] == item_id]
-    usage_df = usage_df[usage_df["case_service"] == case_service]
-    usage_df = usage_df.drop_duplicates(subset=["event_id"])
-
     surgery_df = analytics.surgery.df
     surgery_df = surgery_df[surgery_df["case_service"] == case_service]
     surgery_df = surgery_df[surgery_df["scheduled_procedures"].notna()]
@@ -44,6 +35,8 @@ for case_service in ["General Surgery", "Plastic Surgery"]:
                                                                             set([p.strip().lower()for p in val.split(",")])
                                                                             )
     surgery_df["procedures_count"] = surgery_df["procedures_set"].apply(lambda v: len(v))
+    if multi_procedure_only:
+        surgery_df = surgery_df[surgery_df["procedures_count"] > 1]
     procedure_df = pd.concat([Series(row['event_id'], row['procedures_set']) for _, row in surgery_df.iterrows()],
                              ).reset_index().rename(columns={"index": "procedure",
                                                              0: "event_id"})
@@ -53,16 +46,9 @@ for case_service in ["General Surgery", "Plastic Surgery"]:
         .fillna(0)\
         .reset_index()
 
-    # surg_regres_df = surg_regres_df.join(
-    #     usage_df[usage_df["item_id"] == item_id][["event_id", "used_qty"]].set_index("event_id"),
-    #     on="event_id",
-    #     how="left",
-    #     rsuffix="usage").fillna(0)
-
     procedures = sorted(list(set(procedure_df["procedure"])))
     surg_regres_df["procedure_vector"] = surg_regres_df[[p for p in procedures]].values.tolist()
 
-    #y = surg_regres_df["used_qty"]
     x = np.array(list(surg_regres_df["procedure_vector"]))
 
     coeffs = []
@@ -75,8 +61,7 @@ for case_service in ["General Surgery", "Plastic Surgery"]:
             coeff.append(phi_coeff(x1, x2))
         coeffs.append(coeff)
 
-
-    with open("{0}_item_id_{1}_procedure_phi_coeff.csv".format(case_service.replace(" ", "_"), item_id), "w") as f:
+    with open("{0}_procedure`_phi_coeff.csv".format(case_service.replace(" ", "_")), "w") as f:
         f.write("procedures,")
         f.write(",".join(p for p in procedures))
         f.write("\n")

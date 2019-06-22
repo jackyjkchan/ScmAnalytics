@@ -5,6 +5,8 @@ import numpy as np
 from scm_analytics import ScmAnalytics, config
 from pandas import Series
 
+# looks for procedures that always appear together. These will need to be combined for regression.
+
 analytics = ScmAnalytics.ScmAnalytics(config.LHS())
 usage_events = set(analytics.usage.df["event_id"])
 surgery_df = analytics.surgery.df[analytics.surgery.df["scheduled_procedures"].notna()]

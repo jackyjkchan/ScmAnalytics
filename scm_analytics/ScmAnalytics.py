@@ -191,7 +191,66 @@ class ScmAnalytics(AnalyticsCore):
         )
         return surg_item_usage_df
 
+    def analyze_item_usage_by_case_service(self):
+        usage_df = self.usage.df
+        po_df = self.po.df
 
+        start = min(usage_df["start_dt"])
+        end = max(usage_df["start_dt"])
+        po_df = po_df[po_df["order_date"] >= start]
+        po_df = po_df[po_df["order_date"] <= end]
+        po_df["leadtime_intdays"] = po_df["order_leadtime"].apply(lambda x: x.days)
 
+        usage_items = set(usage_df["item_id"])
+        case_services = set(usage_df[usage_df["case_service"].notna()]["case_service"])
+        po_items = set(po_df["item_id"])
 
+        po_summary_df = po_df.groupby(["item_id"]).agg({
+            'po_id': "nunique",
+            'qty_ea': 'sum',
+            'leadtime_intdays': ['mean', 'std']
+        }).reset_index()
 
+        po_summary_df.columns = [' '.join(col).strip().replace(" ", "_") for col in po_summary_df.columns.values]
+        po_summary_df = po_summary_df.rename(columns={"qty_ea_sum": "ordered_qty",
+                                                      "po_id_nunique": "orders_placed"})
+
+        common_items = usage_items.intersection(po_items)
+        usage_df = usage_df[usage_df["item_id"].isin(common_items)]
+
+        item_used_lkup = usage_df.groupby(["item_id", "case_service"]).agg({"used_qty": "sum",
+                                                                            "code_name": "max",
+                                                                            "unit_price": "max"}).reset_index()
+
+        item_used_df = item_used_lkup.pivot(index="item_id", columns="case_service", values='used_qty') \
+            .fillna(0) \
+            .reset_index()
+        item_used_df["total_used_qty"] = item_used_df[[c for c in case_services]].sum(axis=1)
+        for c in case_services:
+            item_used_df[c] = item_used_df[c] / item_used_df["total_used_qty"]
+
+        self.item_catalog_df = self.item_catalog_df.join(
+            item_used_df[["item_id"]+list(case_services)+["total_used_qty"]].set_index("item_id"),
+            on="item_id",
+            how="left",
+            rsuffix="case_service")
+
+    def date_to_day_of_week(self, df, col):
+        weekday_map = {
+            0: "Monday",
+            1: "Tuesday",
+            2: "Wednesday",
+            3: "Thursday",
+            4: "Friday",
+            5: "Saturday",
+            6: "Sunday"
+        }
+
+        col = df[col].apply(lambda x:
+                            weekday_map[x.weekday()]
+                            if x.weekday() in weekday_map
+                            else np.nan)
+        return col
+
+    def process_month_column(self):
+        self.df['month'] = self.df['case_dt'].apply(lambda x: str(x.month))
