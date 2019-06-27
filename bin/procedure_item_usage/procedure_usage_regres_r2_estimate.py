@@ -39,7 +39,6 @@ def run(case_service="Cardiac Surgery", item_id="38242", occurrence_thres=0):
         how="left",
         rsuffix="usage").fillna(0)
 
-
     all_procedures = set(procedure_df["procedure"])
 
     procedures = sorted(list(all_procedures))
@@ -59,7 +58,7 @@ def run(case_service="Cardiac Surgery", item_id="38242", occurrence_thres=0):
     ss_tot = len(surg_regres_df) * np.var(surg_regres_df["used_qty"])
     ss_res_bound = sum(r2_df["occurrences"] * r2_df["variance"])
     r2_upper_bound = 1 - ss_res_bound/ss_tot
-    print(r2_upper_bound)
+    print(r2_upper_bound, np.mean(surg_regres_df["used_qty"]), np.var(surg_regres_df["used_qty"], ddof=1))
     return
 
 
@@ -83,7 +82,8 @@ if __name__ == "__main__":
            21920,
            133221,
            82099,
-           84364
+           84364,
+           129636
            ]
 
     for id in ids:

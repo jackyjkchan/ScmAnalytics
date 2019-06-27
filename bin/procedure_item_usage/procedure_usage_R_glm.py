@@ -258,15 +258,15 @@ def run(case_service="Cardiac Surgery",
 
 if __name__ == "__main__":
     print(run(p_thres=0.05,
-              occurrence_thres=10,
+              occurrence_thres=5,
               add_intercept=False,
               add_procedures_count=False,
               add_interactions=True,
               add_other_flag=True,
               primary_model="gaussian",
               pre_screen=True,
-              secondary_model=["poisson"],
-              item_id=str(38242)))
+              secondary_model=["nb"],
+              item_id=str(129636)))
 
 
 if __name__ == "":
